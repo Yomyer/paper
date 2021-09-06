@@ -47,7 +47,7 @@ classes.forEach(cls => {
                 name: name,
                 // Constructors don't need return type.
                 type: !it.isConstructor
-                    ? formatType(getMethodReturnType(it), { isMethodReturnType: true })
+                    ? formatType(getMethodReturnType(it), { isMethodReturnType: true }, it.values)
                     : '',
                 static: formatStatic(it.isStatic),
                 // This flag is only used below to filter methods.
@@ -193,10 +193,16 @@ function parseType(type, options, values = '') {
         }
         // Convert primitive types to their lowercase equivalent to suit
         // typescript best practices.
+        if(/^Object (.*)$/.exec(singleType)){
+            splittedType = splittedType.replace(/^Object (.*)$/, '$1');
+        }
+
         if (['Number', 'String', 'Boolean', 'Object'].indexOf(singleType) >= 0) {
             if(singleType === 'String' && values){
                 splittedType = values.replace(/,/g, ' |').replace(/(?:\r\n|\r|\n)/g, '');
-            }else{
+            } else if(singleType === 'Object' && values){
+                splittedType = values;
+            } else{
                 splittedType = splittedType.toLowerCase();
             }
             
@@ -242,7 +248,7 @@ function formatParameter(param, staticConstructorClass) {
     if (param.isOptional) {
         content += '?';
     }
-    content += formatType(param.type, { staticConstructorClass });
+    content += formatType(param.type, { staticConstructorClass }, param.values);
     return content;
 }
 

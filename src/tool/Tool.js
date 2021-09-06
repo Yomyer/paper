@@ -128,6 +128,61 @@ var Tool = PaperScopeItem.extend(/** @lends Tool# */{
     },
 
     /**
+     * Get active main tool
+     * @name Tool#actived
+     * @type Boolean
+     */
+    getActived(){
+        return this._scope.tool === this;
+    },
+
+
+    /**
+     * Check is main tool
+     * @name Tool#isMain
+     * @type Tool
+     */
+    isMain(){
+        return this._scope.mainTool;
+    },
+
+    /**
+     * Active main tool
+     * @name Tool#activeMain
+     * @function
+     * @type void
+     */
+    activeMain(){
+        this._scope.mainTool.activate();
+    },
+
+    /**
+     * {@grouptitle Mouse Event Handlers}
+     *
+     * The function to be called when the mouse button is pushed down. The
+     * function receives a {@link ToolEvent} object which contains information
+     * about the tool event.
+     *
+     * @name Tool#onActivate
+     * @property
+     * @type ?Function
+     *
+     * @example {@paperscript}
+     */
+
+    /**
+     * {@grouptitle Mouse Event Handlers}
+     *
+     * The function to be called when the mouse button is pushed down. The
+     * function receives a {@link ToolEvent} object which contains information
+     * about the tool event.
+     *
+     * @name Tool#onDeactivate
+     * @property
+     * @type ?Function
+     */
+
+    /**
      * {@grouptitle Mouse Event Handlers}
      *
      * The function to be called when the mouse button is pushed down. The

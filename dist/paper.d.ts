@@ -1,5 +1,5 @@
 /*!
- * Paper.js v0.12.15-develop - The Swiss Army Knife of Vector Graphics Scripting.
+ * Paper.js v0.12.15-main - The Swiss Army Knife of Vector Graphics Scripting.
  * http://paperjs.org/
  *
  * Copyright (c) 2011 - 2020, Jürg Lehni & Jonathan Puckey
@@ -9,7 +9,7 @@
  *
  * All rights reserved.
  *
- * Date: Tue Mar 23 16:54:21 2021 +0100
+ * Date: Fri Sep 3 11:41:41 2021 +0200
  *
  * This is an auto-generated type definition.
  */
@@ -1351,6 +1351,31 @@ declare namespace paper {
         style: Style
 
         /** 
+         * The UID of the item.
+         */
+        uid: string
+
+        /** 
+         * The if item is actived.
+         */
+        actived: boolean
+
+        /** 
+         * The angle of item
+         */
+        angle: number
+
+        /** 
+         * @return Selector
+         */
+        selector: any
+
+        /** 
+         * @return Boolean
+         */
+        blocked: any
+
+        /** 
          * Specifies whether the item is locked. When set to `true`, item
          * interactions with the mouse are disabled.
          */
@@ -1374,6 +1399,12 @@ declare namespace paper {
          * The opacity of the item as a value between `0` and `1`.
          */
         opacity: number
+
+        /** 
+         * Specifies whether the item functions as a guide. When set to `true`, the
+         * item will be drawn at the end as a guide.
+         */
+        guide: boolean
 
         /** 
          * Specifies whether the item is selected. This will also return `true` for
@@ -2101,6 +2132,9 @@ declare namespace paper {
          * @return the inserted item, or `null` if inserting was not possible
          */
         insertChild(index: number, item: Item): Item
+
+        
+        sendToIndex(index: number): void
 
         /** 
          * Adds the specified items as children of this item at the end of the its
@@ -3261,6 +3295,19 @@ declare namespace paper {
          */
         tools: Tool[]
 
+        /** 
+         * Get the guides
+         */
+        readonly guidesLayer: Layer
+
+        /** 
+         * Get the main tool
+         */
+        mainTool: Tool
+
+        
+        OpostieCornersName: any
+
         Color: typeof Color
         CompoundPath: typeof CompoundPath
         Curve: typeof Curve
@@ -3286,6 +3333,7 @@ declare namespace paper {
         Raster: typeof Raster
         Rectangle: typeof Rectangle
         Segment: typeof Segment
+        Selector: typeof Selector
         Shape: typeof Shape
         Size: typeof Size
         Style: typeof Style
@@ -3295,6 +3343,7 @@ declare namespace paper {
         Tool: typeof Tool
         ToolEvent: typeof ToolEvent
         Tween: typeof Tween
+        UID: typeof UID
         View: typeof View
 
         /** 
@@ -3303,21 +3352,9 @@ declare namespace paper {
         constructor()
 
         /** 
-         * Compiles the PaperScript code into a compiled function and executes it.
-         * The compiled function receives all properties of this {@link PaperScope}
-         * as arguments, to emulate a global scope with unaffected performance. It
-         * also installs global view and tool handlers automatically on the
-         * respective objects.
-         * 
-         * @option options.url {String} the url of the source, for source-map
-         *     debugging
-         * @option options.source {String} the source to be used for the source-
-         *     mapping, in case the code that's passed in has already been mingled.
-         * 
-         * @param code - the PaperScript code
-         * @param options - the compilation options
+         * Retrieves a PaperScope object with the given scope id.
          */
-        execute(code: string, options?: object): void
+        static get(id: any): PaperScope
 
         /** 
          * Injects the paper scope into any other given scope. Can be used for
@@ -3349,10 +3386,43 @@ declare namespace paper {
          */
         activate(): void
 
+        
+        on(eventName: string, handler: Function): Tool
+
         /** 
-         * Retrieves a PaperScope object with the given scope id.
+         * Compiles the PaperScript code into a compiled function and executes it.
+         * The compiled function receives all properties of this {@link PaperScope}
+         * as arguments, to emulate a global scope with unaffected performance. It
+         * also installs global view and tool handlers automatically on the
+         * respective objects.
+         * 
+         * @option options.url {String} the url of the source, for source-map
+         *     debugging
+         * @option options.source {String} the source to be used for the source-
+         *     mapping, in case the code that's passed in has already been mingled.
+         * 
+         * @param code - the PaperScript code
+         * @param options - the compilation options
          */
-        static get(id: any): PaperScope
+        execute(code: string, options?: object): void
+
+        
+        fire(eventName: string, options: object): Tool
+
+        
+        createTool(name: string, main?: boolean): Tool
+
+        
+        getTool(name: string): Tool
+
+        
+        setInfo(label: string, point: Point): void
+
+        
+        clearInfo(): void
+
+        
+        off(eventName: string, handler: Function): Tool
 
     }
 
@@ -4972,6 +5042,26 @@ declare namespace paper {
         readonly activeLayer: Layer
 
         /** 
+         * The guides
+         */
+        readonly guidesLayer: Layer
+
+        /** 
+         * The inserMode
+         */
+        insertMode: boolean
+
+        /** 
+         * @return Item
+         */
+        itemSelector: any
+
+        /** 
+         * The inserMode
+         */
+        activeItems: Item[]
+
+        /** 
          * The symbol definitions shared by all symbol items contained place ind
          * project.
          */
@@ -5062,27 +5152,55 @@ declare namespace paper {
         insertLayer(index: number, layer: Layer): Layer
 
         /** 
+         * Performs a hit-test on the items contained within the project at the
+         * location of the specified point.
+         * 
+         * The options object allows you to control the specifics of the hit-test
+         * and may contain a combination of the following values:
+         * 
+         * @option [options.tolerance={@link PaperScope#settings}.hitTolerance]
+         *     {Number} the tolerance of the hit-test
+         * @option options.class {Function} only hit-test against a specific item
+         *     class, or any of its sub-classes, by providing the constructor
+         *     function against which an `instanceof` check is performed:
+         *     {@values  Group, Layer, Path, CompoundPath, Shape, Raster,
+         *     SymbolItem, PointText, ...}
+         * @option options.match {Function} a match function to be called for each
+         *     found hit result: Return `true` to return the result, `false` to keep
+         *     searching
+         * @option [options.fill=true] {Boolean} hit-test the fill of items
+         * @option [options.stroke=true] {Boolean} hit-test the stroke of path
+         *     items, taking into account the setting of stroke color and width
+         * @option [options.segments=true] {Boolean} hit-test for {@link
+         *     Segment#point} of {@link Path} items
+         * @option options.curves {Boolean} hit-test the curves of path items,
+         *     without taking the stroke color or width into account
+         * @option options.handles {Boolean} hit-test for the handles ({@link
+         *     Segment#handleIn} / {@link Segment#handleOut}) of path segments.
+         * @option options.ends {Boolean} only hit-test for the first or last
+         *     segment points of open path items
+         * @option options.position {Boolean} hit-test the {@link Item#position} of
+         *     of items, which depends on the setting of {@link Item#pivot}
+         * @option options.center {Boolean} hit-test the {@link Rectangle#center} of
+         *     the bounding rectangle of items ({@link Item#bounds})
+         * @option options.bounds {Boolean} hit-test the corners and side-centers of
+         *     the bounding rectangle of items ({@link Item#bounds})
+         * @option options.guides {Boolean} hit-test items that have {@link
+         *     Item#guide} set to `true`
+         * @option options.selected {Boolean} only hit selected items
+         * 
+         * @param point - the point where the hit-test should be performed
+         * 
+         * @return a hit result object that contains more information
+         *     about what exactly was hit or `null` if nothing was hit
+         */
+        hitTest(point: Point, options?: object): HitResult
+
+        /** 
          * Activates this project, so all newly created items will be placed
          * in it.
          */
         activate(): void
-
-        /** 
-         * Performs a hit-test on the item and its children (if it is a {@link
-         * Group} or {@link Layer}) at the location of the specified point,
-         * returning all found hits.
-         * 
-         * The options object allows you to control the specifics of the hit-
-         * test. See {@link #hitTest} for a list of all options.
-         * 
-         * @see #hitTest(point[, options]);
-         * 
-         * @param point - the point where the hit-test should be performed
-         * 
-         * @return hit result objects for all hits, describing what
-         *     exactly was hit or `null` if nothing was hit
-         */
-        hitTestAll(point: Point, options?: object): HitResult[]
 
         /** 
          * Fetch items contained within the project whose properties match the
@@ -5137,6 +5255,21 @@ declare namespace paper {
          * @return the first item in the project matching the given criteria
          */
         getItem(options: object | Function): Item
+
+        /** 
+         * See {@link #getItems} for a selection of illustrated examples.
+         * 
+         * @param poin - the criteria to match against
+         * @param options - the criteria to match against
+         * 
+         * @return the first item in the project matching the given criteria
+         */
+        getItemByPoint(poin: Point, options?: object | Function): Item
+
+        /** 
+         * Deactive all items
+         */
+        deactivateAll(): void
 
         /** 
          * Exports (serializes) the project with all its layers and child items to a
@@ -5226,49 +5359,21 @@ declare namespace paper {
         importSVG(svg: SVGElement | string, options?: object): Item
 
         /** 
-         * Performs a hit-test on the items contained within the project at the
-         * location of the specified point.
+         * Performs a hit-test on the item and its children (if it is a {@link
+         * Group} or {@link Layer}) at the location of the specified point,
+         * returning all found hits.
          * 
-         * The options object allows you to control the specifics of the hit-test
-         * and may contain a combination of the following values:
+         * The options object allows you to control the specifics of the hit-
+         * test. See {@link #hitTest} for a list of all options.
          * 
-         * @option [options.tolerance={@link PaperScope#settings}.hitTolerance]
-         *     {Number} the tolerance of the hit-test
-         * @option options.class {Function} only hit-test against a specific item
-         *     class, or any of its sub-classes, by providing the constructor
-         *     function against which an `instanceof` check is performed:
-         *     {@values  Group, Layer, Path, CompoundPath, Shape, Raster,
-         *     SymbolItem, PointText, ...}
-         * @option options.match {Function} a match function to be called for each
-         *     found hit result: Return `true` to return the result, `false` to keep
-         *     searching
-         * @option [options.fill=true] {Boolean} hit-test the fill of items
-         * @option [options.stroke=true] {Boolean} hit-test the stroke of path
-         *     items, taking into account the setting of stroke color and width
-         * @option [options.segments=true] {Boolean} hit-test for {@link
-         *     Segment#point} of {@link Path} items
-         * @option options.curves {Boolean} hit-test the curves of path items,
-         *     without taking the stroke color or width into account
-         * @option options.handles {Boolean} hit-test for the handles ({@link
-         *     Segment#handleIn} / {@link Segment#handleOut}) of path segments.
-         * @option options.ends {Boolean} only hit-test for the first or last
-         *     segment points of open path items
-         * @option options.position {Boolean} hit-test the {@link Item#position} of
-         *     of items, which depends on the setting of {@link Item#pivot}
-         * @option options.center {Boolean} hit-test the {@link Rectangle#center} of
-         *     the bounding rectangle of items ({@link Item#bounds})
-         * @option options.bounds {Boolean} hit-test the corners and side-centers of
-         *     the bounding rectangle of items ({@link Item#bounds})
-         * @option options.guides {Boolean} hit-test items that have {@link
-         *     Item#guide} set to `true`
-         * @option options.selected {Boolean} only hit selected items
+         * @see #hitTest(point[, options]);
          * 
          * @param point - the point where the hit-test should be performed
          * 
-         * @return a hit result object that contains more information
-         *     about what exactly was hit or `null` if nothing was hit
+         * @return hit result objects for all hits, describing what
+         *     exactly was hit or `null` if nothing was hit
          */
-        hitTest(point: Point, options?: object): HitResult
+        hitTestAll(point: Point, options?: object): HitResult[]
 
     }
 
@@ -6040,6 +6145,32 @@ declare namespace paper {
     }
 
     
+    class Selector  {
+        
+        pathData: string
+
+        
+        angle: number
+
+        
+        points: {[key: string]: Point}
+
+        
+        bounds: Rectangle
+
+        
+        size: Size
+
+        
+        item: Item
+
+        
+        segments: Segment[]
+
+
+    }
+
+    
     class Shape extends Item {
         /** 
          * The type of shape of the item as a string.
@@ -6666,6 +6797,30 @@ declare namespace paper {
         fixedDistance: number
 
         /** 
+         * Get active main tool
+         */
+        actived: boolean
+
+        /** 
+         * Check is main tool
+         */
+        isMain: Tool
+
+        /** 
+         * The function to be called when the mouse button is pushed down. The
+         * function receives a {@link ToolEvent} object which contains information
+         * about the tool event.
+         */
+        onActivate: Function | null
+
+        /** 
+         * The function to be called when the mouse button is pushed down. The
+         * function receives a {@link ToolEvent} object which contains information
+         * about the tool event.
+         */
+        onDeactivate: Function | null
+
+        /** 
          * The function to be called when the mouse button is pushed down. The
          * function receives a {@link ToolEvent} object which contains information
          * about the tool event.
@@ -6726,6 +6881,11 @@ declare namespace paper {
          * Removes this tool from the {@link PaperScope#tools} list.
          */
         remove(): void
+
+        /** 
+         * Active main tool
+         */
+        activeMain(): void
 
         /** 
          * Attach an event handler to the tool.
@@ -6916,6 +7076,20 @@ declare namespace paper {
          * Stop tweening.
          */
         stop(): Tween
+
+    }
+
+    
+    class UID  {
+
+        /** 
+         * Returns the unique id.
+         * 
+         * @param size - The optional x portion of the Coordinate
+         * 
+         * @return the unique uid
+         */
+        static generate(size?: number): string
 
     }
 
@@ -7369,41 +7543,43 @@ declare module '@yomyer/paper'
 {
     const paperFull: paper.PaperScope;
 
-    export type Color = paper.Color
-    export type CompoundPath = paper.CompoundPath
-    export type Curve = paper.Curve
-    export type CurveLocation = paper.CurveLocation
-    export type Event = paper.Event
-    export type Gradient = paper.Gradient
-    export type GradientStop = paper.GradientStop
-    export type Group = paper.Group
-    export type HitResult = paper.HitResult
-    export type Item = paper.Item
-    export type Key = paper.Key
-    export type KeyEvent = paper.KeyEvent
-    export type Layer = paper.Layer
-    export type Matrix = paper.Matrix
-    export type MouseEvent = paper.MouseEvent
-    export type PaperScope = paper.PaperScope
-    export type PaperScript = paper.PaperScript
-    export type Path = paper.Path
-    export type PathItem = paper.PathItem
-    export type Point = paper.Point
-    export type PointText = paper.PointText
-    export type Project = paper.Project
-    export type Raster = paper.Raster
-    export type Rectangle = paper.Rectangle
-    export type Segment = paper.Segment
-    export type Shape = paper.Shape
-    export type Size = paper.Size
-    export type Style = paper.Style
-    export type SymbolDefinition = paper.SymbolDefinition
-    export type SymbolItem = paper.SymbolItem
-    export type TextItem = paper.TextItem
-    export type Tool = paper.Tool
-    export type ToolEvent = paper.ToolEvent
-    export type Tween = paper.Tween
-    export type View = paper.View
+    export class Color extends paper.Color {}
+    export class CompoundPath extends paper.CompoundPath {}
+    export class Curve extends paper.Curve {}
+    export class CurveLocation extends paper.CurveLocation {}
+    export class Event extends paper.Event {}
+    export class Gradient extends paper.Gradient {}
+    export class GradientStop extends paper.GradientStop {}
+    export class Group extends paper.Group {}
+    export class HitResult extends paper.HitResult {}
+    export class Item extends paper.Item {}
+    export class Key extends paper.Key {}
+    export class KeyEvent extends paper.KeyEvent {}
+    export class Layer extends paper.Layer {}
+    export class Matrix extends paper.Matrix {}
+    export class MouseEvent extends paper.MouseEvent {}
+    export class PaperScope extends paper.PaperScope {}
+    export class PaperScript extends paper.PaperScript {}
+    export class Path extends paper.Path {}
+    export class PathItem extends paper.PathItem {}
+    export class Point extends paper.Point {}
+    export class PointText extends paper.PointText {}
+    export class Project extends paper.Project {}
+    export class Raster extends paper.Raster {}
+    export class Rectangle extends paper.Rectangle {}
+    export class Segment extends paper.Segment {}
+    export class Selector extends paper.Selector {}
+    export class Shape extends paper.Shape {}
+    export class Size extends paper.Size {}
+    export class Style extends paper.Style {}
+    export class SymbolDefinition extends paper.SymbolDefinition {}
+    export class SymbolItem extends paper.SymbolItem {}
+    export class TextItem extends paper.TextItem {}
+    export class Tool extends paper.Tool {}
+    export class ToolEvent extends paper.ToolEvent {}
+    export class Tween extends paper.Tween {}
+    export class UID extends paper.UID {}
+    export class View extends paper.View {}
     
     export default paperFull
 }

@@ -63,7 +63,7 @@ declare module '@yomyer/paper'
     const paperFull: paper.PaperScope;
 
     {{#classes}}
-    export type {{className}} = paper.{{className}}
+    export class {{className}} extends paper.{{className}} {}
     {{/classes}}
     
     export default paperFull

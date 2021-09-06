@@ -131,7 +131,7 @@ var HitResult = Base.extend(/** @lends HitResult# */{
                 // Hit test the corners and side-centers of the bounding box
                 bounds: false,
                 //  Hit items that are marked as guides
-                guides: false,
+                guides: true,
                 // Only hit selected objects
                 selected: false
             }, options);

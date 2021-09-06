@@ -1086,3 +1086,55 @@ test('Item#draw() with CompoundPath as clip item', function() {
 
     comparePixels(createdClippedGroup(true), createdClippedGroup(false));
 });
+
+test('Item#uid', function(){
+    var uid = UID.generate();
+    var circle = new Path.Circle({
+        center: [50, 50],
+        radius: 5,
+        fillColor: 'red',
+        uid
+    });
+
+    equals(circle.uid, uid, uid);
+
+    const circle2 = circle.clone();
+
+    equals(circle.uid !== circle2.uid, true, circle.uid + '!== ' + circle2.uid);
+});
+
+test('Item#angle', function(){
+    var circle = new Path.Circle({
+        center: [50, 50],
+        radius: 5,
+        fillColor: 'red'
+    });
+
+    circle.rotate(20)
+
+    equals(circle.angle, 20, circle.angle);
+});
+
+test('Item#guide', function(){
+    var circle = new Path.Circle({
+        center: [50, 50],
+        radius: 5,
+        fillColor: 'red',
+        guide: true
+    });
+
+    equals(project.guidesLayer.children.length, 1);
+});
+
+
+test('Item#actived', function(){
+    var circle = new Path.Circle({
+        center: [50, 50],
+        radius: 5,
+        fillColor: 'red',
+        actived: true
+    });
+
+    equals(circle.actived, true)
+    equals(project.activeItems.length, 1);
+});

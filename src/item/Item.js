@@ -57,8 +57,14 @@ var Item = Base.extend(Emitter, /** @lends Item# */{
     _opacity: 1,
     _locked: false,
     _guide: false,
+    _uid: null,
+    _angle: 0,
+    _blocked: false,
+    _actived: false,
     _clipMask: false,
     _selection: 0,
+    _selectionCache: null,
+    _selector: null,
     // Controls whether bounds should appear selected when the item is selected.
     // This is only turned off for Group, Layer and PathItem, where it can be
     // selected separately by setting item.bounds.selected = true;
@@ -78,7 +84,9 @@ var Item = Base.extend(Emitter, /** @lends Item# */{
         guide: false,
         clipMask: false,
         selected: false,
-        data: {}
+        data: {},
+        uid: null,
+        actived: false
     },
     // Prioritize `applyMatrix` over `matrix`:
     _prioritize: ['applyMatrix']
@@ -404,7 +412,97 @@ new function() { // Injection scope for various item event handlers
         // Don't access _style directly so Path#getStyle() can be overridden for
         // CompoundPaths.
         this.getStyle().set(style);
-    }
+    },
+
+    /**
+     * The UID of the item.
+     *
+     * @bean
+     * @name Item#uid
+     * @type String
+     * */
+    getUid: function(){
+        if(!this._uid){
+            this._uid = UID.generate();
+        }
+        return this._uid;
+    },
+
+
+    setUid: function(uid){
+        this._uid = uid;
+    },
+
+    /**
+     * The if item is actived.
+     *
+     * @bean
+     * @name Item#actived
+     * @type Boolean
+     * 
+    */
+    getActived: function(){
+        return this._actived;
+    },
+
+    setActived: function(actived){
+        var index = this.project._activeItems.findIndex(
+            (item) => item === this
+        );
+
+        if (index !== -1) {
+            this.project._activeItems.splice(index, 1);
+        }
+
+        !actived ||
+        (!this.project._activeItems.includes(this) &&
+            this.project._activeItems.push(this));
+
+        this._actived = actived;
+    },
+
+    /**
+     * The angle of item
+     *
+     * @bean
+     * @name Item#angle
+     * @type Number
+     * 
+    */
+    getAngle: function(){
+        return this._angle;
+    },
+
+    setAngle: function(angle){
+        this._angle = angle;
+    },
+
+    /**
+     * 
+     * @name Item#selector
+     * @returns Selector
+     */
+    getSelector: function(){
+        return this._selector;
+    },
+
+    setSelector: function(selector){
+        this._selector = selector;
+    },
+
+    /**
+     * 
+     * @name Item#blocked
+     * @returns Boolean
+     */
+    getBlocked: function(){
+        return this._blocked;
+    },
+
+    setBlocked: function(blocked){
+        this._blocked = blocked;
+    },
+
 }, Base.each(['locked', 'visible', 'blendMode', 'opacity', 'guide'],
     // Produce getter/setters for properties. We need setters because we want to
     // call _changed() if a property was modified.
@@ -424,6 +522,9 @@ new function() { // Injection scope for various item event handlers
             if (value != this[key]) {
                 this[key] = value;
                 this._changed(flags[name] || /*#=*/Change.ATTRIBUTE);
+                if(name === 'guide'){
+                    this._project.guidesLayer.addChild(this)
+                }
             }
         };
     },
@@ -567,7 +668,6 @@ new function() { // Injection scope for various item event handlers
      * @name Item#guide
      * @type Boolean
      * @default true
-     * @ignore
      */
 
     getSelection: function() {
@@ -2526,7 +2626,15 @@ new function() { // Injection scope for hit-test functions shared with project
         var res = item ? this.insertChildren(index, [item]) : null;
         return res && res[0];
     },
-
+    
+    /**
+     * 
+     * @param {number} index 
+     */
+    sendToIndex: function (index) {
+        this.layer.insertChild(index, this)
+    },
+    
     /**
      * Adds the specified items as children of this item at the end of the its
      * children list. You can use this function for groups, compound paths and
@@ -3383,6 +3491,9 @@ new function() { // Injection scope for hit-test functions shared with project
         var args = arguments,
             value = (rotate ? Base : Point).read(args),
             center = Point.read(args, 0, { readNull: true });
+        
+        if(rotate) this._angle += value;
+
         return this.transform(new Matrix()[key](value,
                 center || this.getPosition(true)));
     };

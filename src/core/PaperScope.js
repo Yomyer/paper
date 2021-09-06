@@ -32,9 +32,11 @@
  * The global {@link paper} object is simply a reference to the currently active
  * `PaperScope`.
  */
+
 var PaperScope = Base.extend(/** @lends PaperScope# */{
     _class: 'PaperScope',
-
+    _eventListeners: {},
+ 
     /**
      * Creates a PaperScope object.
      *
@@ -189,6 +191,29 @@ var PaperScope = Base.extend(/** @lends PaperScope# */{
     },
 
     /**
+     * Get the guides
+     * @bean
+     * @type Layer
+     */
+    getGuidesLayer:function(){
+        return this.project.getGuidesLayer
+    },
+
+    /**
+     * Get the main tool
+     * @bean
+     * @type Tool
+     */
+    getMainTool: function(){
+        return this._mainTool;
+    },
+
+    setMainTool: function(tool){
+        this._mainTool = tool
+    },
+
+
+    /**
      * Compiles the PaperScript code into a compiled function and executes it.
      * The compiled function receives all properties of this {@link PaperScope}
      * as arguments, to emulate a global scope with unaffected performance. It
@@ -293,9 +318,191 @@ var PaperScope = Base.extend(/** @lends PaperScope# */{
         delete PaperScope._scopes[this._id];
     },
 
+
+    /**
+     * 
+     * @param {String} eventName 
+     * @param {Function} handler 
+     * @return {Tool}
+     */
+    _removeEventListener: function(eventName, handler){
+        if (!this._eventListeners[eventName]) {
+            return;
+        }
+        if (handler) {
+            const index = this._eventListeners[eventName].findIndex(
+                (event) => event === handler
+            );
+            this._eventListeners[eventName] = this._eventListeners[
+                eventName
+            ].filter((_, key) => key !== index);
+        } else {
+            this._eventListeners[eventName] = [];
+        }
+    },
+
+    /**
+     * 
+     * @param {String} eventName 
+     * @param {Function} handler 
+     * @returns {Tool}
+     */
+     on: function(eventName, handler){
+        if (!this._eventListeners) {
+            this._eventListeners = {};
+        }
+        if (eventName instanceof Object) {
+            for (const prop in eventName) {
+                this.on(prop, eventName[prop]);
+            }
+        } else {
+            if (!this._eventListeners[eventName]) {
+                this._eventListeners[eventName] = []
+            }
+            this._eventListeners[eventName].push(handler);
+        }
+        return this;
+    },
+
+    /**
+     * 
+     * @param {String} eventName 
+     * @param {Function} handler 
+     * @return {Tool}
+     */
+     off: function(eventName, handler){
+        if (!this._eventListeners) {
+            return this;
+        }
+        if (arguments.length === 0) {
+            for (eventName in this._eventListeners) {
+                this._removeEventListener(eventName);
+            }
+        } else if (eventName instanceof Object) {
+            for (const prop in eventName) {
+                this._removeEventListener(prop, eventName[prop]);
+            }
+        } else {
+            this._removeEventListener(eventName, handler);
+        }
+        return this;
+    },
+    
+
+    /**
+     * 
+     * @param {String} eventName 
+     * @param {Object} options 
+     * @return {Tool}
+     */
+    fire: function(eventName, options){
+        if (!this._eventListeners) return this;
+
+        if (options && !options.items) {
+            options.items = this.project.activedItems;
+        }
+
+        const listenersForEvent = this._eventListeners[eventName];
+        if (listenersForEvent) {
+            listenersForEvent.forEach((event) => event.call(this, options || null));
+
+            this._eventListeners[eventName] = listenersForEvent.filter((value) => {
+                return value;
+            })
+        }
+
+        if (eventName.startsWith('object:') && eventName.endsWith('ing')) {
+            const listenersForObjectModified = this._eventListeners[
+                'object:modifing'
+            ];
+
+            if (listenersForObjectModified) {
+                listenersForObjectModified.forEach((event) =>
+                    event.call(this, options || null)
+                );
+            }
+        }
+
+        if (eventName.startsWith('object:') && eventName.endsWith('ed')) {
+            const listenersForObjectModified = this._eventListeners[
+                'object:modified'
+            ];
+
+            if (listenersForObjectModified) {
+                listenersForObjectModified.forEach((event) =>
+                    event.call(this, options || null)
+                );
+            }
+        }
+
+        if (eventName.startsWith('selection:')) {
+            const listenersForObjectModified = this._eventListeners[
+                'selection:modified'
+            ];
+
+            if (listenersForObjectModified) {
+                listenersForObjectModified.forEach((event) =>
+                    event.call(this, options || null)
+                );
+            }
+        }
+
+        return this
+    },
+
+    /**
+     * 
+     * @param {String} name 
+     * @param {Boolean} [main] 
+     * @return {Tool}
+     */
+    createTool: function(name, main) {
+        const tool = new this.Tool()
+
+        if (name) {
+            tool.name = name
+            this.tools[name] = tool
+        }
+        if (main) {
+            this.mainTool = tool
+        }
+    
+        if (this.mainTool) {
+            this.mainTool.activateMain()
+        }
+    
+        return tool
+    },
+
+    /**
+     * 
+     * @param {String} name 
+     * @return {Tool}
+     */
+    getTool: function(name){
+        return this.tools[name] || {}
+    },
+
+    /**
+     * 
+     * @param {String} label 
+     * @param {Point} point 
+     */
+    setInfo: function( label, point){
+        this.fire('info:updated', { label, point });
+    },
+
+    /**
+     * 
+     */
+    clearInfo: function(){
+        this.fire('info:updated', null);
+    },
+    
     statics: new function() {
         // Produces helpers to e.g. check for both 'canvas' and
         // 'data-paper-canvas' attributes:
+
         function handleAttribute(name) {
             name += 'Attribute';
             return function(el, attr) {
@@ -306,6 +513,21 @@ var PaperScope = Base.extend(/** @lends PaperScope# */{
         return /** @lends PaperScope */{
             _scopes: {},
             _id: 0,
+
+            /**
+             * @name PaperScope#OpostieCornersName
+             */
+            OpostieCornersName: {
+                topLeft: 'bottomRight',
+                topCenter: 'bottomCenter',
+                topRight: 'bottomLeft',
+                leftCenter: 'rightCenter',
+                rightCenter: 'leftCenter',
+                bottomLeft: 'topRight',
+                bottomCenter: 'topCenter',
+                bottomRight: 'topLeft',
+                center: 'center'
+            },
 
             /**
              * Retrieves a PaperScope object with the given scope id.

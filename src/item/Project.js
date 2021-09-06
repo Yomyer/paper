@@ -35,6 +35,10 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
     _list: 'projects',
     _reference: 'project',
     _compactSerialize: true, // Never include the class name for Project
+    _insertMode: false,
+    _activeItems: [],
+    _mainTool: null,
+    _itemSelector: null,
 
     // TODO: Add arguments to define pages
     /**
@@ -240,6 +244,64 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
      */
     getActiveLayer: function() {
         return this._activeLayer || new Layer({ project: this, insert: true });
+    },
+
+    /**
+     * The guides
+     *
+     * @bean
+     * @type Layer
+     */
+    getGuidesLayer: function(){
+        if (!this._children.Guides) {
+            const current = this.activeLayer;
+            this.addLayer(new paper.Layer({ name: 'Guides' }));
+            current.activate();
+        }
+
+        return this._children.Guides;
+    },
+
+    /**
+     * The inserMode
+     *
+     * @bean
+     * @type boolean
+     */
+     getInsertMode: function(){
+        return this._insertMode;
+    },
+
+    setInsertMode: function(mode){
+        this._insertMode = mode;
+    },
+
+    /**
+     * 
+     * @name Project#itemSelector
+     * @returns Item
+     */
+    getItemSelector: function(){
+        return this._itemSelector;
+    },
+
+    setItemSelector: function(Item){
+        this._itemSelector = Item;
+    },
+    
+
+    /**
+     * The inserMode
+     *
+     * @bean
+     * @type Item[]
+     */
+    getActiveItems: function(){
+        return this._activeItems;
+    },
+
+    setActiveItems: function(items){
+        this._activeItems = items;
     },
 
     /**
@@ -720,6 +782,61 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
     getItem: function(options) {
         return Item._getItems(this, options, null, null, true)[0] || null;
     },
+
+     /**
+     *
+     * See {@link #getItems(options)} for a selection of illustrated examples.
+     *
+     * @param {Point} poin the criteria to match against
+     * @param {Object|Function} [options] the criteria to match against
+     * @return {Item} the first item in the project matching the given criteria
+     */
+    getItemByPoint: function(point, options){
+        var options = options | {};
+
+        var args = {
+            class: Path,
+            segments: true,
+            stroke: true,
+            curves: true,
+            fill: true,
+            guides: false,
+            tolerance: 8 / this.view.zoom,
+            match: function(hit){
+                return (
+                    !hit.item.hasFill() &&
+                    !hit.item.blocked &&
+                    (options.filter ? options.filter(hit.item) : true)
+                );
+            }
+        };
+
+        var items = this.hitTestAll(point, Base.set(args, options)).concat(
+            this.hitTestAll(point, 
+                Base.set(args, {
+                    tolerance: 0,
+                    match: function(hit) {
+                        return !hit.item.blocked &&
+                        (options.filter ? options.filter(hit.item) : true);
+                    }
+                }, options)
+            )
+        );
+
+        if (!items.length) return null;
+    
+        return items[0].item;
+    },
+
+    /**
+     * Deactive all items
+     * 
+     */
+    deactivateAll: function(){
+        this._activeItems.slice().forEach((item) => (item.actived = false));
+        this._activeItems = [];
+    },
+
 
     /**
      * {@grouptitle Importing / Exporting JSON and SVG}

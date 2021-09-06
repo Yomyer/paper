@@ -34,3 +34,21 @@ test('clear()', function() {
     project.clear();
     equals(project.layers.length, 0);
 });
+
+test('getItemByPoint()', function(){
+    var circle = new Path.Circle({
+        center: [50, 50],
+        radius: 100,
+        fillColor: 'red'
+    });
+
+    var item = project.getItemByPoint([50, 50])
+
+    equals(item, circle);
+})
+
+test('project#guides', function(){
+    var guides = project.guidesLayer;
+
+    equals(!!guides, true);
+})

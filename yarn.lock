@@ -90,6 +90,49 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@yomyer/paper@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "@yomyer/paper@workspace:."
+  dependencies:
+    acorn: ~0.5.0
+    ansi-colors: ^4.1.1
+    canvas: ^2.7.0
+    del: ^5.1.0
+    fancy-log: ^1.3.3
+    gulp: ^3.9.1
+    gulp-cached: ^1.1.1
+    gulp-git-streamed: ^2.10.1
+    gulp-jshint: ^2.1.0
+    gulp-json-modifier: ^1.0.0
+    gulp-prepro: ^2.4.0
+    gulp-qunits: ^2.1.2
+    gulp-rename: ^2.0.0
+    gulp-shell: ^0.8.0
+    gulp-symlink: ^2.1.4
+    gulp-uglify: ^3.0.2
+    gulp-uncomment: ^0.3.0
+    gulp-webserver: ^0.9.1
+    gulp-whitespace: ^0.1.0
+    gulp-zip: ^5.1.0
+    husky: ^4.3.8
+    jsdom: ^16.5.1
+    jshint: ^2.12.0
+    jshint-summary: ^0.4.0
+    merge-stream: ^2.0.0
+    minimist: ^1.2.5
+    mustache: ^4.1.0
+    prepro: ^2.4.0
+    qunitjs: ^1.23.1
+    require-dir: ^1.2.0
+    resemblejs: ^3.2.5
+    run-sequence: ^2.2.1
+    source-map-support: ^0.5.19
+    stats.js: ^0.17.0
+    straps: ^3.0.1
+    typescript: ^3.9.9
+  languageName: unknown
+  linkType: soft
+
 "abab@npm:^2.0.3, abab@npm:^2.0.5":
   version: 2.0.5
   resolution: "abab@npm:2.0.5"
@@ -4385,48 +4428,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"paper@0.12.15, paper@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "paper@workspace:."
-  dependencies:
-    acorn: ~0.5.0
-    ansi-colors: ^4.1.1
-    canvas: ^2.7.0
-    del: ^5.1.0
-    fancy-log: ^1.3.3
-    gulp: ^3.9.1
-    gulp-cached: ^1.1.1
-    gulp-git-streamed: ^2.10.1
-    gulp-jshint: ^2.1.0
-    gulp-json-modifier: ^1.0.0
-    gulp-prepro: ^2.4.0
-    gulp-qunits: ^2.1.2
-    gulp-rename: ^2.0.0
-    gulp-shell: ^0.8.0
-    gulp-symlink: ^2.1.4
-    gulp-uglify: ^3.0.2
-    gulp-uncomment: ^0.3.0
-    gulp-webserver: ^0.9.1
-    gulp-whitespace: ^0.1.0
-    gulp-zip: ^5.1.0
-    husky: ^4.3.8
-    jsdom: ^16.5.1
-    jshint: ^2.12.0
-    jshint-summary: ^0.4.0
-    merge-stream: ^2.0.0
-    minimist: ^1.2.5
-    mustache: ^4.1.0
-    prepro: ^2.4.0
-    qunitjs: ^1.23.1
-    require-dir: ^1.2.0
-    resemblejs: ^3.2.5
-    run-sequence: ^2.2.1
-    source-map-support: ^0.5.19
-    stats.js: ^0.17.0
-    straps: ^3.0.1
-    typescript: ^3.9.9
-  languageName: unknown
-  linkType: soft
+"paper@npm:0.12.15":
+  version: 0.12.15
+  resolution: "paper@npm:0.12.15"
+  checksum: 7076b5c45ef9654ebfde7d14ff53e4195b861a4a7d383bf2f231e1b1142d07be4b836ee3e25356e6f5ba634589f4f084e2dcd85cc1f718b4ae0edb70290cdfa2
+  languageName: node
+  linkType: hard
 
 "parent-module@npm:^1.0.0":
   version: 1.0.1
