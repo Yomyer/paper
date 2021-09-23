@@ -9,7 +9,7 @@
  *
  * All rights reserved.
  *
- * Date: Fri Sep 3 11:41:41 2021 +0200
+ * Date: Mon Sep 6 14:01:56 2021 +0200
  *
  * This is an auto-generated type definition.
  */
@@ -108,6 +108,16 @@ declare namespace paper {
         constructor(red: number, green: number, blue: number, alpha?: number)
 
         /** 
+         * Creates a gray Color object.
+         * 
+         * @param gray - the amount of gray in the color as a value
+         *     between `0` and `1`
+         * @param alpha - the alpha of the color as a value between `0`
+         *     and `1`
+         */
+        constructor(gray: number, alpha?: number)
+
+        /** 
          * Creates a Color object from a CSS string. All common CSS color string
          * formats are supported:
          * - Named colors (e.g. `'red'`, `'fuchsia'`, …)
@@ -124,16 +134,6 @@ declare namespace paper {
          * Creates a gradient Color object.
          */
         constructor(gradient: Gradient, origin: Point, destination: Point, highlight?: Point)
-
-        /** 
-         * Creates a gray Color object.
-         * 
-         * @param gray - the amount of gray in the color as a value
-         *     between `0` and `1`
-         * @param alpha - the alpha of the color as a value between `0`
-         *     and `1`
-         */
-        constructor(gray: number, alpha?: number)
 
         /** 
          * Creates a HSB, HSL or gradient Color object from the properties of
@@ -215,15 +215,14 @@ declare namespace paper {
         toString(): string
 
         /** 
-         * Returns the division of the supplied color to the color as a new
-         * color.
-         * The object itself is not modified!
+         * Returns the color as a CSS string.
          * 
-         * @param color - the color to divide
+         * @param hex - whether to return the color in hexadecimal
+         * representation or as a CSS RGB / RGBA string.
          * 
-         * @return the division of the two colors as a new color
+         * @return a CSS string representation of the color
          */
-        divide(color: Color): Color
+        toCSS(hex: boolean): string
 
         /** 
          * Transform the gradient color by the specified matrix.
@@ -322,14 +321,15 @@ declare namespace paper {
         divide(number: number): Color
 
         /** 
-         * Returns the color as a CSS string.
+         * Returns the division of the supplied color to the color as a new
+         * color.
+         * The object itself is not modified!
          * 
-         * @param hex - whether to return the color in hexadecimal
-         * representation or as a CSS RGB / RGBA string.
+         * @param color - the color to divide
          * 
-         * @return a CSS string representation of the color
+         * @return the division of the two colors as a new color
          */
-        toCSS(hex: boolean): string
+        divide(color: Color): Color
 
     }
 
@@ -739,17 +739,13 @@ declare namespace paper {
         isVertical(): boolean
 
         /** 
-         * Returns all intersections between two {@link Curve} objects as an
-         * array of {@link CurveLocation} objects.
+         * Calculates the curve location at the specified offset on the curve.
          * 
-         * @param curve - the other curve to find the intersections with
-         *     (if the curve itself or `null` is passed, the self intersection
-         *     of the curve is returned, if it exists)
+         * @param offset - the offset on the curve
          * 
-         * @return the locations of all intersections between
-         *     the curves
+         * @return the curve location at the specified the offset
          */
-        getIntersections(curve: Curve): CurveLocation[]
+        getLocationAt(offset: number): CurveLocation
 
         /** 
          * Calculates the curve location at the specified curve-time parameter on
@@ -977,13 +973,17 @@ declare namespace paper {
         getCurvatureAtTime(time: number): number
 
         /** 
-         * Calculates the curve location at the specified offset on the curve.
+         * Returns all intersections between two {@link Curve} objects as an
+         * array of {@link CurveLocation} objects.
          * 
-         * @param offset - the offset on the curve
+         * @param curve - the other curve to find the intersections with
+         *     (if the curve itself or `null` is passed, the self intersection
+         *     of the curve is returned, if it exists)
          * 
-         * @return the curve location at the specified the offset
+         * @return the locations of all intersections between
+         *     the curves
          */
-        getLocationAt(offset: number): CurveLocation
+        getIntersections(curve: Curve): CurveLocation[]
 
     }
 
@@ -1778,12 +1778,8 @@ declare namespace paper {
         onMouseLeave: Function | null
 
 
-        /** 
-         * Checks if the item contains any children items.
-         * 
-         * @return true it has one or more children
-         */
-        hasChildren(): boolean
+        
+        static rotatePoint(point: Point, center: Point, angle: number): Point
 
         /** 
          * Sets the properties of the passed object literal on this item to the
@@ -1793,6 +1789,20 @@ declare namespace paper {
          * @return the item itself
          */
         set(props: object): this
+
+        /** 
+         * Clones the item within the same project and places the copy above the
+         * item.
+         * 
+         * @option [insert=true] specifies whether the copy should be
+         *     inserted into the scene graph. When set to `true`, it is inserted
+         *     above the original
+         * @option [deep=true] specifies whether the item's children should also be
+         *     cloned
+         * 
+         * @return the newly cloned item
+         */
+        clone(options?: object): this
 
         /** 
          * Copies the content of the specified item over to this item.
@@ -2292,18 +2302,11 @@ declare namespace paper {
         hasShadow(): boolean
 
         /** 
-         * Clones the item within the same project and places the copy above the
-         * item.
+         * Checks if the item contains any children items.
          * 
-         * @option [insert=true] specifies whether the copy should be
-         *     inserted into the scene graph. When set to `true`, it is inserted
-         *     above the original
-         * @option [deep=true] specifies whether the item's children should also be
-         *     cloned
-         * 
-         * @return the newly cloned item
+         * @return true it has one or more children
          */
-        clone(options?: object): this
+        hasChildren(): boolean
 
         /** 
          * Checks whether the item and all its parents are inserted into scene graph
@@ -2884,6 +2887,18 @@ declare namespace paper {
         /** 
          * Creates a 2D affine transformation matrix.
          * 
+         * @param a - the a property of the transform
+         * @param b - the b property of the transform
+         * @param c - the c property of the transform
+         * @param d - the d property of the transform
+         * @param tx - the tx property of the transform
+         * @param ty - the ty property of the transform
+         */
+        constructor(a: number, b: number, c: number, d: number, tx: number, ty: number)
+
+        /** 
+         * Creates a 2D affine transformation matrix.
+         * 
          * @param values - the matrix values to initialize this matrix with
          */
         constructor(values: number[])
@@ -2894,18 +2909,6 @@ declare namespace paper {
          * @param matrix - the matrix to copy the values from
          */
         constructor(matrix: Matrix)
-
-        /** 
-         * Creates a 2D affine transformation matrix.
-         * 
-         * @param a - the a property of the transform
-         * @param b - the b property of the transform
-         * @param c - the c property of the transform
-         * @param d - the d property of the transform
-         * @param tx - the tx property of the transform
-         * @param ty - the ty property of the transform
-         */
-        constructor(a: number, b: number, c: number, d: number, tx: number, ty: number)
 
         /** 
          * Sets the matrix to the passed values. Note that any sequence of
@@ -3024,9 +3027,15 @@ declare namespace paper {
         shear(shear: Point, center?: Point): Matrix
 
         /** 
-         * Applies this matrix to the specified Canvas Context.
+         * Concatenates this matrix with a shear transformation.
+         * 
+         * @param hor - the horizontal shear factor
+         * @param ver - the vertical shear factor
+         * @param center - the center for the shear transformation
+         * 
+         * @return this affine transform
          */
-        applyToContext(ctx: CanvasRenderingContext2D): void
+        shear(hor: number, ver: number, center?: Point): Matrix
 
         /** 
          * Concatenates this matrix with a skew transformation.
@@ -3170,15 +3179,9 @@ declare namespace paper {
         decompose(): object
 
         /** 
-         * Concatenates this matrix with a shear transformation.
-         * 
-         * @param hor - the horizontal shear factor
-         * @param ver - the vertical shear factor
-         * @param center - the center for the shear transformation
-         * 
-         * @return this affine transform
+         * Applies this matrix to the specified Canvas Context.
          */
-        shear(hor: number, ver: number, center?: Point): Matrix
+        applyToContext(ctx: CanvasRenderingContext2D): void
 
     }
 
@@ -3305,9 +3308,6 @@ declare namespace paper {
          */
         mainTool: Tool
 
-        
-        OpostieCornersName: any
-
         Color: typeof Color
         CompoundPath: typeof CompoundPath
         Curve: typeof Curve
@@ -3352,9 +3352,21 @@ declare namespace paper {
         constructor()
 
         /** 
-         * Retrieves a PaperScope object with the given scope id.
+         * Compiles the PaperScript code into a compiled function and executes it.
+         * The compiled function receives all properties of this {@link PaperScope}
+         * as arguments, to emulate a global scope with unaffected performance. It
+         * also installs global view and tool handlers automatically on the
+         * respective objects.
+         * 
+         * @option options.url {String} the url of the source, for source-map
+         *     debugging
+         * @option options.source {String} the source to be used for the source-
+         *     mapping, in case the code that's passed in has already been mingled.
+         * 
+         * @param code - the PaperScript code
+         * @param options - the compilation options
          */
-        static get(id: any): PaperScope
+        execute(code: string, options?: object): void
 
         /** 
          * Injects the paper scope into any other given scope. Can be used for
@@ -3389,22 +3401,8 @@ declare namespace paper {
         
         on(eventName: string, handler: Function): Tool
 
-        /** 
-         * Compiles the PaperScript code into a compiled function and executes it.
-         * The compiled function receives all properties of this {@link PaperScope}
-         * as arguments, to emulate a global scope with unaffected performance. It
-         * also installs global view and tool handlers automatically on the
-         * respective objects.
-         * 
-         * @option options.url {String} the url of the source, for source-map
-         *     debugging
-         * @option options.source {String} the source to be used for the source-
-         *     mapping, in case the code that's passed in has already been mingled.
-         * 
-         * @param code - the PaperScript code
-         * @param options - the compilation options
-         */
-        execute(code: string, options?: object): void
+        
+        off(eventName: string, handler: Function): Tool
 
         
         fire(eventName: string, options: object): Tool
@@ -3421,9 +3419,19 @@ declare namespace paper {
         
         clearInfo(): void
 
-        
-        off(eventName: string, handler: Function): Tool
+        /** 
+         * Retrieves a PaperScope object with the given scope id.
+         */
+        static get(id: any): PaperScope
 
+    }
+    namespace PaperScope {
+
+        class OpostieCornersName extends PaperScope {
+            
+            constructor()
+
+        }
     }
 
     
@@ -3570,16 +3578,6 @@ declare namespace paper {
         constructor(object: object)
 
         /** 
-         * Adds an array of segments (or types that can be converted to segments)
-         * to the end of the {@link #segments} array.
-         * 
-         * @return an array of the added segments. These segments are
-         * not necessarily the same objects, e.g. if the segment to be added already
-         * belongs to another path
-         */
-        addSegments(segments: Segment[]): Segment[]
-
-        /** 
          * Adds one or more segments to the end of the {@link #segments} array of
          * this path.
          * 
@@ -3603,6 +3601,16 @@ declare namespace paper {
          * object, e.g. if the segment to be added already belongs to another path
          */
         insert(index: number, segment: Segment | Point): Segment
+
+        /** 
+         * Adds an array of segments (or types that can be converted to segments)
+         * to the end of the {@link #segments} array.
+         * 
+         * @return an array of the added segments. These segments are
+         * not necessarily the same objects, e.g. if the segment to be added already
+         * belongs to another path
+         */
+        addSegments(segments: Segment[]): Segment[]
 
         /** 
          * Inserts an array of segments at a given index in the path's
@@ -3835,6 +3843,46 @@ declare namespace paper {
     }
     namespace Path {
 
+        class Line extends Path {
+            /** 
+             * Creates a linear path item from two points describing a line.
+             * 
+             * @param from - the line's starting point
+             * @param to - the line's ending point
+             */
+            constructor(from: Point, to: Point)
+
+            /** 
+             * Creates a linear path item from the properties described by an object
+             * literal.
+             * 
+             * @param object - an object containing properties describing the
+             *     path's attributes
+             */
+            constructor(object: object)
+
+        }
+
+        class Circle extends Path {
+            /** 
+             * Creates a circular path item.
+             * 
+             * @param center - the center point of the circle
+             * @param radius - the radius of the circle
+             */
+            constructor(center: Point, radius: number)
+
+            /** 
+             * Creates a circular path item from the properties described by an
+             * object literal.
+             * 
+             * @param object - an object containing properties describing the
+             *     path's attributes
+             */
+            constructor(object: object)
+
+        }
+
         class Rectangle extends Path {
             /** 
              * Creates a rectangular path item, with optionally rounded corners.
@@ -3958,46 +4006,6 @@ declare namespace paper {
             constructor(object: object)
 
         }
-
-        class Line extends Path {
-            /** 
-             * Creates a linear path item from two points describing a line.
-             * 
-             * @param from - the line's starting point
-             * @param to - the line's ending point
-             */
-            constructor(from: Point, to: Point)
-
-            /** 
-             * Creates a linear path item from the properties described by an object
-             * literal.
-             * 
-             * @param object - an object containing properties describing the
-             *     path's attributes
-             */
-            constructor(object: object)
-
-        }
-
-        class Circle extends Path {
-            /** 
-             * Creates a circular path item.
-             * 
-             * @param center - the center point of the circle
-             * @param radius - the radius of the circle
-             */
-            constructor(center: Point, radius: number)
-
-            /** 
-             * Creates a circular path item from the properties described by an
-             * object literal.
-             * 
-             * @param object - an object containing properties describing the
-             *     path's attributes
-             */
-            constructor(object: object)
-
-        }
     }
 
     /** 
@@ -4029,20 +4037,6 @@ declare namespace paper {
 
 
         /** 
-         * Interpolates between the two specified path items and uses the result
-         * as the geometry for this path item. The number of children and
-         * segments in the two paths involved in the operation should be the same.
-         * 
-         * @param from - the path item defining the geometry when `factor`
-         *     is `0`
-         * @param to - the path item defining the geometry  when `factor`
-         *     is `1`
-         * @param factor - the interpolation coefficient, typically between
-         *     `0` and `1`, but extrapolation is possible too
-         */
-        interpolate(from: PathItem, to: PathItem, factor: number): void
-
-        /** 
          * Unites the geometry of the specified path with this path's geometry
          * and returns the result as a new path item.
          * 
@@ -4056,6 +4050,26 @@ declare namespace paper {
          * @return the resulting path item
          */
         unite(path: PathItem, options?: object): PathItem
+
+        /** 
+         * Intersects the geometry of the specified path with this path's
+         * geometry and returns the result as a new path item.
+         * 
+         * @option [options.insert=true] {Boolean} whether the resulting item
+         *     should be inserted back into the scene graph, above both paths
+         *     involved in the operation
+         * @option [options.trace=true] {Boolean} whether the tracing method is
+         *     used, treating both paths as areas when determining which parts
+         *     of the paths are to be kept in the result, or whether the first
+         *     path is only to be split at intersections, keeping the parts of
+         *     the curves that intersect with the area of the second path.
+         * 
+         * @param path - the path to intersect with
+         * @param options - the boolean operation options
+         * 
+         * @return the resulting path item
+         */
+        intersect(path: PathItem, options?: object): PathItem
 
         /** 
          * Subtracts the geometry of the specified path from this path's
@@ -4323,24 +4337,18 @@ declare namespace paper {
         simplify(tolerance?: number): boolean
 
         /** 
-         * Intersects the geometry of the specified path with this path's
-         * geometry and returns the result as a new path item.
+         * Interpolates between the two specified path items and uses the result
+         * as the geometry for this path item. The number of children and
+         * segments in the two paths involved in the operation should be the same.
          * 
-         * @option [options.insert=true] {Boolean} whether the resulting item
-         *     should be inserted back into the scene graph, above both paths
-         *     involved in the operation
-         * @option [options.trace=true] {Boolean} whether the tracing method is
-         *     used, treating both paths as areas when determining which parts
-         *     of the paths are to be kept in the result, or whether the first
-         *     path is only to be split at intersections, keeping the parts of
-         *     the curves that intersect with the area of the second path.
-         * 
-         * @param path - the path to intersect with
-         * @param options - the boolean operation options
-         * 
-         * @return the resulting path item
+         * @param from - the path item defining the geometry when `factor`
+         *     is `0`
+         * @param to - the path item defining the geometry  when `factor`
+         *     is `1`
+         * @param factor - the interpolation coefficient, typically between
+         *     `0` and `1`, but extrapolation is possible too
          */
-        intersect(path: PathItem, options?: object): PathItem
+        interpolate(from: PathItem, to: PathItem, factor: number): void
 
         /** 
          * Compares the geometry of two paths to see if they describe the same
@@ -4597,6 +4605,12 @@ declare namespace paper {
         constructor(x: number, y: number)
 
         /** 
+         * Creates a Point object using the numbers in the given array as
+         * coordinates.
+         */
+        constructor(array: any[])
+
+        /** 
          * Creates a Point object using the width and height values of the given
          * Size object.
          */
@@ -4606,12 +4620,6 @@ declare namespace paper {
          * Creates a Point object using the coordinates of the given Point object.
          */
         constructor(point: Point)
-
-        /** 
-         * Creates a Point object using the numbers in the given array as
-         * coordinates.
-         */
-        constructor(array: any[])
 
         /** 
          * Creates a Point object using the properties in the given object.
@@ -4774,12 +4782,15 @@ declare namespace paper {
         multiply(number: number): Point
 
         /** 
-         * Returns a point object with random {@link #x} and {@link #y} values
-         * between `0` and `1`.
+         * Returns the multiplication of the supplied point to the point as a new
+         * point.
+         * The object itself is not modified!
          * 
-         * @return the newly created point object
+         * @param point - the point to multiply by
+         * 
+         * @return the multiplication of the two points as a new point
          */
-        static random(): Point
+        multiply(point: Point): Point
 
         /** 
          * Returns the division of the supplied value to both coordinates of
@@ -4953,15 +4964,12 @@ declare namespace paper {
         static max(point1: Point, point2: Point): Point
 
         /** 
-         * Returns the multiplication of the supplied point to the point as a new
-         * point.
-         * The object itself is not modified!
+         * Returns a point object with random {@link #x} and {@link #y} values
+         * between `0` and `1`.
          * 
-         * @param point - the point to multiply by
-         * 
-         * @return the multiplication of the two points as a new point
+         * @return the newly created point object
          */
-        multiply(point: Point): Point
+        static random(): Point
 
     }
 
@@ -5051,10 +5059,8 @@ declare namespace paper {
          */
         insertMode: boolean
 
-        /** 
-         * @return Item
-         */
-        itemSelector: any
+        
+        itemSelector: Item
 
         /** 
          * The inserMode
@@ -5088,21 +5094,10 @@ declare namespace paper {
         constructor(element: HTMLCanvasElement | string | Size)
 
         /** 
-         * Imports the provided external SVG file, converts it into Paper.js items
-         * and adds them to the active layer of this project.
-         * Note that the project is not cleared first. You can call
-         * {@link Project#clear} to do so.
-         * 
-         * @param svg - the URL of the SVG file to fetch.
-         * @param onLoad - the callback function to call once the SVG
-         *     content is loaded from the given URL receiving two arguments: the
-         *     converted `item` and the original `svg` data as a string. Only
-         *     required when loading from external files.
-         * 
-         * @return the newly created Paper.js item containing the converted
-         *     SVG content
+         * Activates this project, so all newly created items will be placed
+         * in it.
          */
-        importSVG(svg: SVGElement | string, onLoad: Function): Item
+        activate(): void
 
         /** 
          * Clears the project by removing all {@link Project#layers}.
@@ -5197,10 +5192,21 @@ declare namespace paper {
         hitTest(point: Point, options?: object): HitResult
 
         /** 
-         * Activates this project, so all newly created items will be placed
-         * in it.
+         * Performs a hit-test on the item and its children (if it is a {@link
+         * Group} or {@link Layer}) at the location of the specified point,
+         * returning all found hits.
+         * 
+         * The options object allows you to control the specifics of the hit-
+         * test. See {@link #hitTest} for a list of all options.
+         * 
+         * @see #hitTest(point[, options]);
+         * 
+         * @param point - the point where the hit-test should be performed
+         * 
+         * @return hit result objects for all hits, describing what
+         *     exactly was hit or `null` if nothing was hit
          */
-        activate(): void
+        hitTestAll(point: Point, options?: object): HitResult[]
 
         /** 
          * Fetch items contained within the project whose properties match the
@@ -5359,21 +5365,24 @@ declare namespace paper {
         importSVG(svg: SVGElement | string, options?: object): Item
 
         /** 
-         * Performs a hit-test on the item and its children (if it is a {@link
-         * Group} or {@link Layer}) at the location of the specified point,
-         * returning all found hits.
+         * Imports the provided external SVG file, converts it into Paper.js items
+         * and adds them to the active layer of this project.
+         * Note that the project is not cleared first. You can call
+         * {@link Project#clear} to do so.
          * 
-         * The options object allows you to control the specifics of the hit-
-         * test. See {@link #hitTest} for a list of all options.
+         * @param svg - the URL of the SVG file to fetch.
+         * @param onLoad - the callback function to call once the SVG
+         *     content is loaded from the given URL receiving two arguments: the
+         *     converted `item` and the original `svg` data as a string. Only
+         *     required when loading from external files.
          * 
-         * @see #hitTest(point[, options]);
-         * 
-         * @param point - the point where the hit-test should be performed
-         * 
-         * @return hit result objects for all hits, describing what
-         *     exactly was hit or `null` if nothing was hit
+         * @return the newly created Paper.js item containing the converted
+         *     SVG content
          */
-        hitTestAll(point: Point, options?: object): HitResult[]
+        importSVG(svg: SVGElement | string, onLoad: Function): Item
+
+        
+        removeOn(type: string): void
 
     }
 
@@ -5557,8 +5566,15 @@ declare namespace paper {
          */
         getAverageColor(object: Path | Rectangle | Point): Color
 
-        
-        setImageData(data: ImageData): void
+        /** 
+         * Gets the color of a pixel in the raster.
+         * 
+         * @param x - the x offset of the pixel in pixel coordinates
+         * @param y - the y offset of the pixel in pixel coordinates
+         * 
+         * @return the color of the pixel
+         */
+        getPixel(x: number, y: number): Color
 
         /** 
          * Gets the color of a pixel in the raster.
@@ -5602,15 +5618,8 @@ declare namespace paper {
         
         putImageData(data: ImageData, point: Point): void
 
-        /** 
-         * Gets the color of a pixel in the raster.
-         * 
-         * @param x - the x offset of the pixel in pixel coordinates
-         * @param y - the y offset of the pixel in pixel coordinates
-         * 
-         * @return the color of the pixel
-         */
-        getPixel(x: number, y: number): Color
+        
+        setImageData(data: ImageData): void
 
     }
 
@@ -5803,13 +5812,13 @@ declare namespace paper {
         isEmpty(): boolean
 
         /** 
-         * Returns a new rectangle scaled in horizontal direction by the specified
-         * `hor` amount and in vertical direction by the specified `ver` amount
-         * from its center.
+         * Tests if the specified point is inside the boundary of the rectangle.
          * 
-         * @return the scaled rectangle
+         * @param point - the specified point
+         * 
+         * @return true if the point is inside the rectangle's boundary
          */
-        scale(hor: number, ver: number): Rectangle
+        contains(point: Point): boolean
 
         /** 
          * Tests if the interior of the rectangle entirely contains the specified
@@ -5909,13 +5918,13 @@ declare namespace paper {
         scale(amount: number): Rectangle
 
         /** 
-         * Tests if the specified point is inside the boundary of the rectangle.
+         * Returns a new rectangle scaled in horizontal direction by the specified
+         * `hor` amount and in vertical direction by the specified `ver` amount
+         * from its center.
          * 
-         * @param point - the specified point
-         * 
-         * @return true if the point is inside the rectangle's boundary
+         * @return the scaled rectangle
          */
-        contains(point: Point): boolean
+        scale(hor: number, ver: number): Rectangle
 
     }
 
@@ -6085,17 +6094,12 @@ declare namespace paper {
         isFirst(): boolean
 
         /** 
-         * Interpolates between the two specified segments and sets the point and
-         * handles of this segment accordingly.
+         * Checks if the this is the last segment in the {@link Path#segments}
+         * array.
          * 
-         * @param from - the segment defining the geometry when `factor` is
-         *     `0`
-         * @param to - the segment defining the geometry when `factor` is
-         *     `1`
-         * @param factor - the interpolation coefficient, typically between
-         *     `0` and `1`, but extrapolation is possible too
+         * @return true if this is the last segment
          */
-        interpolate(from: Segment, to: Segment, factor: number): void
+        isLast(): boolean
 
         /** 
          * Reverses the {@link #handleIn} and {@link #handleOut} vectors of this
@@ -6135,12 +6139,17 @@ declare namespace paper {
         transform(matrix: Matrix): void
 
         /** 
-         * Checks if the this is the last segment in the {@link Path#segments}
-         * array.
+         * Interpolates between the two specified segments and sets the point and
+         * handles of this segment accordingly.
          * 
-         * @return true if this is the last segment
+         * @param from - the segment defining the geometry when `factor` is
+         *     `0`
+         * @param to - the segment defining the geometry when `factor` is
+         *     `1`
+         * @param factor - the interpolation coefficient, typically between
+         *     `0` and `1`, but extrapolation is possible too
          */
-        isLast(): boolean
+        interpolate(from: Segment, to: Segment, factor: number): void
 
     }
 
@@ -6311,6 +6320,12 @@ declare namespace paper {
         constructor(width: number, height: number)
 
         /** 
+         * Creates a Size object using the numbers in the given array as
+         * dimensions.
+         */
+        constructor(array: any[])
+
+        /** 
          * Creates a Size object using the coordinates of the given Size object.
          */
         constructor(size: Size)
@@ -6320,12 +6335,6 @@ declare namespace paper {
          * values of the given Point object.
          */
         constructor(point: Point)
-
-        /** 
-         * Creates a Size object using the numbers in the given array as
-         * dimensions.
-         */
-        constructor(array: any[])
 
         /** 
          * Creates a Size object using the properties in the given object.
@@ -6409,12 +6418,14 @@ declare namespace paper {
         multiply(number: number): Size
 
         /** 
-         * Returns a size object with random {@link #width} and {@link #height}
-         * values between `0` and `1`.
+         * Returns the multiplication of the width and height of the supplied size
+         * with the size as a new size. The object itself is not modified!
          * 
-         * @return the newly created size object
+         * @param size - the size to multiply by
+         * 
+         * @return the multiplication of the two sizes as a new size
          */
-        static random(): Size
+        multiply(size: Size): Size
 
         /** 
          * Returns the division of the supplied value by the width and height of the
@@ -6512,14 +6523,12 @@ declare namespace paper {
         static max(size1: Size, size2: Size): Size
 
         /** 
-         * Returns the multiplication of the width and height of the supplied size
-         * with the size as a new size. The object itself is not modified!
+         * Returns a size object with random {@link #width} and {@link #height}
+         * values between `0` and `1`.
          * 
-         * @param size - the size to multiply by
-         * 
-         * @return the multiplication of the two sizes as a new size
+         * @return the newly created size object
          */
-        multiply(size: Size): Size
+        static random(): Size
 
     }
 
@@ -6796,6 +6805,9 @@ declare namespace paper {
         
         fixedDistance: number
 
+        
+        paused: boolean
+
         /** 
          * Get active main tool
          */
@@ -6804,7 +6816,7 @@ declare namespace paper {
         /** 
          * Check is main tool
          */
-        isMain: Tool
+        mainActived: boolean
 
         /** 
          * The function to be called when the mouse button is pushed down. The
@@ -7017,6 +7029,11 @@ declare namespace paper {
          */
         item: Item
 
+
+        /** 
+         * Creates a new Segment object.
+         */
+        constructor(tool?: Tool, type?: string, event?: object)
 
         /** 
          * @return a string representation of the tool event
@@ -7295,20 +7312,23 @@ declare namespace paper {
 
 
         /** 
-         * Shears the view by the given values from its center point, or optionally
-         * by a supplied point.
-         * 
-         * @see Matrix#shear(hor, ver[, center])
-         * 
-         * @param hor - the horizontal shear factor
-         * @param ver - the vertical shear factor
-         */
-        shear(hor: number, ver: number, center?: Point): void
-
-        /** 
          * Removes this view from the project and frees the associated element.
          */
         remove(): void
+
+        /** 
+         * @param type - the horizontal and vertical skew angles in degrees
+         */
+        handleMouseEvent(type: string, event: object, point?: Point): void
+
+        /** 
+         * Updates the view if there are changes. Note that when using built-in
+         * event hanlders for interaction, animation and load events, this method is
+         * invoked for you automatically at the end.
+         * 
+         * @return true if the view was updated
+         */
+        update(): boolean
 
         /** 
          * Requests an update of the view if there are changes through the browser's
@@ -7391,13 +7411,15 @@ declare namespace paper {
         shear(shear: Point, center?: Point): void
 
         /** 
-         * Updates the view if there are changes. Note that when using built-in
-         * event hanlders for interaction, animation and load events, this method is
-         * invoked for you automatically at the end.
+         * Shears the view by the given values from its center point, or optionally
+         * by a supplied point.
          * 
-         * @return true if the view was updated
+         * @see Matrix#shear(hor, ver[, center])
+         * 
+         * @param hor - the horizontal shear factor
+         * @param ver - the vertical shear factor
          */
-        update(): boolean
+        shear(hor: number, ver: number, center?: Point): void
 
         /** 
          * Skews the view by the given angles from its center point, or optionally

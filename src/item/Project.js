@@ -254,7 +254,7 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
      */
     getGuidesLayer: function(){
         if (!this._children.Guides) {
-            const current = this.activeLayer;
+            var current = this.activeLayer;
             this.addLayer(new paper.Layer({ name: 'Guides' }));
             current.activate();
         }
@@ -279,14 +279,14 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
     /**
      * 
      * @name Project#itemSelector
-     * @returns Item
+     * @returns {Item}
      */
     getItemSelector: function(){
         return this._itemSelector;
     },
 
-    setItemSelector: function(Item){
-        this._itemSelector = Item;
+    setItemSelector: function(item){
+        this._itemSelector = item;
     },
     
 
@@ -833,7 +833,10 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
      * 
      */
     deactivateAll: function(){
-        this._activeItems.slice().forEach((item) => (item.actived = false));
+        this._activeItems.slice().forEach(function(item) {
+            return item.actived = false;
+        });
+        
         this._activeItems = [];
     },
 
@@ -952,6 +955,9 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
      *     SVG content
      */
 
+    /**
+     * @param {String} type 
+     */
     removeOn: function(type) {
         var sets = this._removeSets;
         if (sets) {

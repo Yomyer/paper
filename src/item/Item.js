@@ -86,6 +86,7 @@ var Item = Base.extend(Emitter, /** @lends Item# */{
         selected: false,
         data: {},
         uid: null,
+        angle: 0,
         actived: false
     },
     // Prioritize `applyMatrix` over `matrix`:
@@ -176,6 +177,7 @@ new function() { // Injection scope for various item event handlers
                 internal: true, insert: true, project: true, parent: true
             });
         }
+
         return hasProps;
     },
 
@@ -417,7 +419,6 @@ new function() { // Injection scope for various item event handlers
     /**
      * The UID of the item.
      *
-     * @bean
      * @name Item#uid
      * @type String
      * */
@@ -436,7 +437,6 @@ new function() { // Injection scope for various item event handlers
     /**
      * The if item is actived.
      *
-     * @bean
      * @name Item#actived
      * @type Boolean
      * 
@@ -446,17 +446,19 @@ new function() { // Injection scope for various item event handlers
     },
 
     setActived: function(actived){
-        var index = this.project._activeItems.findIndex(
-            (item) => item === this
-        );
 
-        if (index !== -1) {
-            this.project._activeItems.splice(index, 1);
+        if(actived && !this._project._activeItems[this.uid]){
+            this._project._activeItems.push(this);
+            this._project._activeItems[this.uid] = this;
+        } else if (!actived && this._project._activeItems[this.uid] !== undefined){
+            var index = this._project._activeItems.indexOf(this);
+ 
+            if(index !== -1){
+                this._project._activeItems.splice(index, 1);
+            }
+            
+            delete this._project._activeItems[this.uid];
         }
-
-        !actived ||
-        (!this.project._activeItems.includes(this) &&
-            this.project._activeItems.push(this));
 
         this._actived = actived;
     },
@@ -464,7 +466,6 @@ new function() { // Injection scope for various item event handlers
     /**
      * The angle of item
      *
-     * @bean
      * @name Item#angle
      * @type Number
      * 
@@ -483,7 +484,8 @@ new function() { // Injection scope for various item event handlers
      * @returns Selector
      */
     getSelector: function(){
-        return this._selector;
+        return Selector._generateSelector(this);
+        // return this._selector;
     },
 
     setSelector: function(selector){
@@ -523,7 +525,7 @@ new function() { // Injection scope for various item event handlers
                 this[key] = value;
                 this._changed(flags[name] || /*#=*/Change.ATTRIBUTE);
                 if(name === 'guide'){
-                    this._project.guidesLayer.addChild(this)
+                    this._project.guidesLayer.addChild(this);
                 }
             }
         };
@@ -1747,9 +1749,7 @@ new function() { // Injection scope for various item event handlers
         var copy = new this.constructor(Item.NO_INSERT),
             children = this._children,
             // Both `insert` and `deep` are true by default:
-            insert = Base.pick(options ? options.insert : undefined,
-                    // Also support boolean parameter for insert, default: true.
-                    options === undefined || options === true),
+            insert = Base.pick(options ? options.insert : undefined, true),
             deep = Base.pick(options ? options.deep : undefined, true);
         // On items with children, for performance reasons due to the way that
         // styles are currently "flattened" into existing children, we need to
@@ -1778,6 +1778,11 @@ new function() { // Injection scope for various item event handlers
             if (name !== orig)
                 copy.setName(name);
         }
+
+        if(options && options.keep){
+            copy._uid = this._uid;
+        }
+
         return copy;
     },
 
@@ -1811,7 +1816,7 @@ new function() { // Injection scope for various item event handlers
         // meaning the default value has been overwritten (default is on
         // prototype).
         var keys = ['_locked', '_visible', '_blendMode', '_opacity',
-                '_clipMask', '_guide'];
+                '_clipMask', '_guide', '_angle'];
         for (var i = 0, l = keys.length; i < l; i++) {
             var key = keys[i];
             if (source.hasOwnProperty(key))
@@ -2632,7 +2637,7 @@ new function() { // Injection scope for hit-test functions shared with project
      * @param {number} index 
      */
     sendToIndex: function (index) {
-        this.layer.insertChild(index, this)
+        this.layer.insertChild(index, this);
     },
     
     /**
@@ -2899,6 +2904,9 @@ new function() { // Injection scope for hit-test functions shared with project
             index = this._index;
         if (this._style)
             this._style._dispose();
+
+        Selector.clear(this);  
+        
         if (owner) {
             // Handle named children separately from index:
             if (this._name)
@@ -3491,7 +3499,7 @@ new function() { // Injection scope for hit-test functions shared with project
         var args = arguments,
             value = (rotate ? Base : Point).read(args),
             center = Point.read(args, 0, { readNull: true });
-        
+
         if(rotate) this._angle += value;
 
         return this.transform(new Matrix()[key](value,

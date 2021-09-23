@@ -52,7 +52,7 @@ let callback         = {} as () => {};
 let hitResult        = {} as paper.HitResult;
 let object           = {} as object;
 
-
+const acolor = new Color('#333');
 //
 // Classes
 //

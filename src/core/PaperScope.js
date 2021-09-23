@@ -195,8 +195,10 @@ var PaperScope = Base.extend(/** @lends PaperScope# */{
      * @bean
      * @type Layer
      */
-    getGuidesLayer:function(){
-        return this.project.getGuidesLayer
+    getGuidesLayer: function(){
+        if(this.project){
+            return this.project.getGuidesLayer();
+        }
     },
 
     /**
@@ -209,7 +211,7 @@ var PaperScope = Base.extend(/** @lends PaperScope# */{
     },
 
     setMainTool: function(tool){
-        this._mainTool = tool
+        this._mainTool = tool;
     },
 
 
@@ -330,12 +332,16 @@ var PaperScope = Base.extend(/** @lends PaperScope# */{
             return;
         }
         if (handler) {
-            const index = this._eventListeners[eventName].findIndex(
-                (event) => event === handler
+            var index = this._eventListeners[eventName].findIndex(
+                function(event) {
+                    return event === handler;
+                } 
             );
             this._eventListeners[eventName] = this._eventListeners[
                 eventName
-            ].filter((_, key) => key !== index);
+            ].filter(function(_, key) {
+                return key !== index;
+            });
         } else {
             this._eventListeners[eventName] = [];
         }
@@ -352,12 +358,12 @@ var PaperScope = Base.extend(/** @lends PaperScope# */{
             this._eventListeners = {};
         }
         if (eventName instanceof Object) {
-            for (const prop in eventName) {
+            for (var prop in eventName) {
                 this.on(prop, eventName[prop]);
             }
         } else {
             if (!this._eventListeners[eventName]) {
-                this._eventListeners[eventName] = []
+                this._eventListeners[eventName] = [];
             }
             this._eventListeners[eventName].push(handler);
         }
@@ -379,7 +385,7 @@ var PaperScope = Base.extend(/** @lends PaperScope# */{
                 this._removeEventListener(eventName);
             }
         } else if (eventName instanceof Object) {
-            for (const prop in eventName) {
+            for (var prop in eventName) {
                 this._removeEventListener(prop, eventName[prop]);
             }
         } else {
@@ -399,55 +405,57 @@ var PaperScope = Base.extend(/** @lends PaperScope# */{
         if (!this._eventListeners) return this;
 
         if (options && !options.items) {
-            options.items = this.project.activedItems;
+            options.items = this.project.getActiveItems();
         }
 
-        const listenersForEvent = this._eventListeners[eventName];
+        var listenersForEvent = this._eventListeners[eventName];
         if (listenersForEvent) {
-            listenersForEvent.forEach((event) => event.call(this, options || null));
+            listenersForEvent.forEach(function(event){
+                return event.call(this, options || null);
+            });
 
-            this._eventListeners[eventName] = listenersForEvent.filter((value) => {
+            this._eventListeners[eventName] = listenersForEvent.filter(function(value){
                 return value;
-            })
+            });
         }
 
         if (eventName.startsWith('object:') && eventName.endsWith('ing')) {
-            const listenersForObjectModified = this._eventListeners[
+            var listenersForObjectModified = this._eventListeners[
                 'object:modifing'
             ];
 
             if (listenersForObjectModified) {
-                listenersForObjectModified.forEach((event) =>
-                    event.call(this, options || null)
-                );
+                listenersForObjectModified.forEach(function(event) {
+                    return event.call(this, options || null);
+                });
             }
         }
 
-        if (eventName.startsWith('object:') && eventName.endsWith('ed')) {
-            const listenersForObjectModified = this._eventListeners[
+        if (eventName.startsWith('object:') && eventName.endsWith('ed')) {            
+            var listenersForObjectModified = this._eventListeners[
                 'object:modified'
             ];
 
             if (listenersForObjectModified) {
-                listenersForObjectModified.forEach((event) =>
-                    event.call(this, options || null)
-                );
+                listenersForObjectModified.forEach(function(event) {
+                    return event.call(this, options || null);
+                });
             }
         }
 
         if (eventName.startsWith('selection:')) {
-            const listenersForObjectModified = this._eventListeners[
+            var listenersForObjectModified = this._eventListeners[
                 'selection:modified'
             ];
 
             if (listenersForObjectModified) {
-                listenersForObjectModified.forEach((event) =>
-                    event.call(this, options || null)
-                );
+                listenersForObjectModified.forEach(function(event){
+                    event.call(this, options || null);
+                });
             }
         }
 
-        return this
+        return this;
     },
 
     /**
@@ -457,21 +465,22 @@ var PaperScope = Base.extend(/** @lends PaperScope# */{
      * @return {Tool}
      */
     createTool: function(name, main) {
-        const tool = new this.Tool()
+        var tool = new this.Tool();
 
         if (name) {
-            tool.name = name
-            this.tools[name] = tool
+            tool.name = name;
+            this.tools[name] = tool;
         }
+
         if (main) {
-            this.mainTool = tool
+            this._mainTool = tool;
+        }
+
+        if (this._mainTool) {
+            this._mainTool.activeMain();
         }
     
-        if (this.mainTool) {
-            this.mainTool.activateMain()
-        }
-    
-        return tool
+        return tool;
     },
 
     /**
@@ -480,7 +489,7 @@ var PaperScope = Base.extend(/** @lends PaperScope# */{
      * @return {Tool}
      */
     getTool: function(name){
-        return this.tools[name] || {}
+        return this.tools[name] || {};
     },
 
     /**
@@ -489,7 +498,7 @@ var PaperScope = Base.extend(/** @lends PaperScope# */{
      * @param {Point} point 
      */
     setInfo: function( label, point){
-        this.fire('info:updated', { label, point });
+        this.fire('info:updated', Base.set({ label: label, point: point }));
     },
 
     /**
@@ -515,7 +524,7 @@ var PaperScope = Base.extend(/** @lends PaperScope# */{
             _id: 0,
 
             /**
-             * @name PaperScope#OpostieCornersName
+             * @static
              */
             OpostieCornersName: {
                 topLeft: 'bottomRight',

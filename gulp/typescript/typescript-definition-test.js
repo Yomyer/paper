@@ -48,6 +48,7 @@ var paperScope = {};
 var callback = {};
 var hitResult = {};
 var object = {};
+var acolor = new paper_1.Color('#333');
 //
 // Classes
 //

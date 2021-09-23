@@ -194,6 +194,15 @@ var View = Base.extend(Emitter, /** @lends View# */{
     },
 
     /**
+     * @param {String} type the horizontal and vertical skew angles in degrees
+     * @param {Object} event
+     * @param {Point} [point]
+     */
+    handleMouseEvent: function(type, event, point){
+        this._handleMouseEvent(type, event, point);
+    },
+
+    /**
      * Updates the view if there are changes. Note that when using built-in
      * event hanlders for interaction, animation and load events, this method is
      * invoked for you automatically at the end.
@@ -1305,7 +1314,7 @@ new function() { // Injection scope for event handling on the browser
 
     return {
         _viewEvents: viewEvents,
-
+        
         /**
          * Private method to handle mouse events, and delegate to items and
          * tools.
