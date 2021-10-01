@@ -247,6 +247,28 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
     },
 
     /**
+     * {@grouptitle Project Content}
+     *
+     * The artboards contained within the project.
+     *
+     * @bean
+     * @type Artboard[]
+     */
+    getArtboards: function() {
+        return this._children;
+    },
+
+    /**
+     * The artboard which is currently active.
+     *
+     * @bean
+     * @type Artboard
+     */
+    getActiveArtboard: function(){
+        return this._activeArtboard;
+    },
+
+    /**
      * The guides
      *
      * @bean

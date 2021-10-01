@@ -49,6 +49,7 @@ var Item = Base.extend(Emitter, /** @lends Item# */{
     // All items apply their matrix by default.
     // Exceptions are Raster, SymbolItem, Clip and Shape.
     _applyMatrix: true,
+    _applyChildrenStyle: true,
     _canApplyMatrix: true,
     _canScaleStroke: false,
     _pivot: null,
@@ -1034,6 +1035,7 @@ new function() { // Injection scope for various item event handlers
         return [
             options.stroke ? 1 : 0,
             options.handle ? 1 : 0,
+            options.drawing ? 1 : 0,
             internal ? 1 : 0
         ].join('');
     },

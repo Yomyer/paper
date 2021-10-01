@@ -33,7 +33,7 @@ var Selector = Base.extend(
                 Selector._cacheBounds[uid] = cache;
             },
             clear: function(owner){
-                delete Selector._cacheBounds[owner._uid]
+                delete Selector._cacheBounds[owner._uid];
             },
             /**
              *
