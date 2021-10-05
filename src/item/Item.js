@@ -447,7 +447,6 @@ new function() { // Injection scope for various item event handlers
     },
 
     setActived: function(actived){
-
         if(actived && !this._project._activeItems[this.uid]){
             this._project._activeItems.push(this);
             this._project._activeItems[this.uid] = this;
@@ -3031,7 +3030,7 @@ new function() { // Injection scope for hit-test functions shared with project
         var numChildren = children ? children.length : 0;
         if (recursively) {
             // In recursive check, item is empty if all its children are empty.
-            for (var i = 0; i < numChildren; i++) {
+            for (var i = 0; i < numChildren; i++) {                
                 if (!children[i].isEmpty(recursively)) {
                     return false;
                 }

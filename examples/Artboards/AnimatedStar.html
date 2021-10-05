@@ -12,6 +12,7 @@
                 fillColor: 'red'
             });
 
+            
             var gre = new Path.Rectangle({
                 from: 250,
                 to: 800,
@@ -19,24 +20,47 @@
             });
 
             var g = new Group(new Path.Rectangle({
-                from: 150,
+                from: 200,
                 to: 600,
                 fillColor: 'yellow'
             }),new Path.Rectangle({
                 from: 300,
                 to: 650,
-                fillColor: 'magenta'
+                fillColor: 'magenta',
+                actived: true
             }));
 
+
+
             var artboard = new Artboard({
-                point: 150,
-                size: 500,
+                from: 150,
+                to: 500,
                 fillColor: 'blue',
                 name: 'xD',
                 children: [gre, g],
-                opacity: 0.5
+                // opacity: 0.5,
+                actived: true,
+                // guide: true
             });
 
+            // var g = new Group(artboard);
+
+            /*
+            var path = new Path.Rectangle({
+                from: 150,
+                to: 500,
+                fillColor: 'yellow',
+                actived: true
+            });
+*/
+   
+
+            //console.log(path.bounds);
+            console.log(artboard.bounds);
+            artboard.scale(1.5)
+            // path.scale(1.2)
+            //console.log(path.bounds);
+           
 
             // artboard.clipped = true
 
@@ -50,6 +74,7 @@
 
             function onMouseDown(event) {
                 path = event.item;
+                console.log(event.item);
             }
 
             function onMouseMove(event) {

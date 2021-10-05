@@ -22,7 +22,6 @@ var Selector = Base.extend(
                         id: owner._id
                     },
                     uid = owner._uid;
-                    
                 if (
                     Selector._cacheBounds[uid] &&
                     Base.equals(cache, Selector._cacheBounds[uid])

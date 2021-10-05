@@ -9,12 +9,49 @@
  *
  * All rights reserved.
  *
- * Date: Mon Sep 6 14:01:56 2021 +0200
+ * Date: Fri Oct 1 17:55:53 2021 +0200
  *
  * This is an auto-generated type definition.
  */
 
 declare namespace paper {
+
+    /** 
+     * The Layer item represents a layer in a Paper.js project.
+     * 
+     * The layer which is currently active can be accessed through
+     * {@link Project#activeArtboard}.
+     * An array of all layers in a project can be accessed through
+     * {@link Project#artboards}.
+     */
+    class Artboard extends Group {
+        /** 
+         * The size of the artboard.
+         */
+        size: Size
+
+        /** 
+         * The size of the artboard.
+         */
+        point: Point
+
+        /** 
+         * The name of the artboard.
+         */
+        name: string
+
+        /** 
+         * The name of the artboard.
+         */
+        clipped: boolean
+
+        /** 
+         * The name of the artboard.
+         */
+        actived: boolean
+
+
+    }
 
     /** 
      * All properties and functions that expect color values in the form
@@ -3308,6 +3345,7 @@ declare namespace paper {
          */
         mainTool: Tool
 
+        Artboard: typeof Artboard
         Color: typeof Color
         CompoundPath: typeof CompoundPath
         Curve: typeof Curve
@@ -5048,6 +5086,16 @@ declare namespace paper {
          * layer by default.
          */
         readonly activeLayer: Layer
+
+        /** 
+         * The artboards contained within the project.
+         */
+        readonly artboards: Artboard[]
+
+        /** 
+         * The artboard which is currently active.
+         */
+        readonly activeArtboard: Artboard
 
         /** 
          * The guides
@@ -7565,6 +7613,7 @@ declare module '@yomyer/paper'
 {
     const paperFull: paper.PaperScope;
 
+    export class Artboard extends paper.Artboard {}
     export class Color extends paper.Color {}
     export class CompoundPath extends paper.CompoundPath {}
     export class Curve extends paper.Curve {}

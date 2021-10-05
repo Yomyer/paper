@@ -26,13 +26,25 @@ var Artboard = Group.extend(
     /** @lends Artboard# */ {
         _class: "Artboard",
         _applyChildrenStyle: false,
+        _applyMatrix: false,
+        _canApplyMatrix: false,
         _drawing: false,
+        _serializeFields: {
+            size: null,
+            poin: null,
+        },
 
         initialize: function Artboard() {
             var args = arguments;
 
             this._children = [];
             this._namedChildren = {};
+
+            const rect = Rectangle.readNamed(args, "rectangle");
+            if (rect) {
+                args[0].size = rect.getSize(true);
+                args[0].point = rect.getPoint(true);
+            }
 
             if (!this._initialize(args[0]))
                 this.addChildren(Array.isArray(args) ? args : arguments);
@@ -43,6 +55,8 @@ var Artboard = Group.extend(
             if (!this._point) {
                 this.setPoint(0);
             }
+
+            this._project._artboards.push(this);
         },
 
         /**
@@ -69,7 +83,7 @@ var Artboard = Group.extend(
             var size = Size.read(arguments);
 
             if (!this._size) {
-                this._size = size;
+                this._size = size.clone();
             } else if (!this._size.equals(size)) {
                 this._size._set(size.width, size.height);
                 this._changed(/*#=*/ Change.GEOMETRY);
@@ -91,8 +105,8 @@ var Artboard = Group.extend(
             var point = Point.read(arguments);
 
             if (!this._point) {
-                this._point = point;
-            } else if (!this._point.equals(_point)) {
+                this._point = point.clone();
+            } else if (!this._point.equals(point)) {
                 this._point._set(point.x, point.y);
                 this._changed(/*#=*/ Change.GEOMETRY);
             }
@@ -136,60 +150,32 @@ var Artboard = Group.extend(
             return this._actived;
         },
 
-        setActived: function (actived) {
-            this._actived = actived;
-
+        setActived: function setActived(actived) {
             if (this._project._activeArtboard) {
-                this._project._activeArtboard.deactivate();
+                this._project._activeArtboard._actived = false;
             }
 
             this._project._activeArtboard = actived ? this : null;
 
             this._selectBounds = actived;
             this._selectChildren = !actived;
+
+            setActived.base.call(this, actived);
         },
 
-        /**
-         * Activates the artboard.
-         *
-         * @example
-         * var firstLayer = project.activeLayer;
-         * var secondLayer = new Layer();
-         * console.log(project.activeLayer == secondLayer); // true
-         * firstLayer.activate();
-         * console.log(project.activeLayer == firstLayer); // true
-         */
-        activate: function () {
-            this.setActived(true);
+        isEmpty: function isEmpty(recursively) {
+            /*if (recursively) {
+                return false;
+            }
+
+            return !this._children.length;
+            */
+            return false;
         },
 
-        /**
-         * Deactivates the artboard.
-         *
-         * @example
-         * var firstLayer = project.activeLayer;
-         * var secondLayer = new Layer();
-         * console.log(project.activeLayer == secondLayer); // true
-         * firstLayer.activate();
-         * console.log(project.activeLayer == firstLayer); // true
-         */
-        deactivate: function () {
-            this.setActived(false);
-        },
-
-        transform: function transform(
-            matrix,
-            _applyRecursively,
-            _setApplyMatrix
-        ) {
-            transform.base.call(
-                this,
-                matrix,
-                _applyRecursively,
-                _setApplyMatrix
-            );
-
-            this._point = matrix._transformPoint(this._point);
+        copyContent: function (source) {
+            this.setSize(source._size);
+            this.setPoint(source._point);
         },
 
         getStrokeBounds: function (matrix) {
@@ -233,7 +219,10 @@ var Artboard = Group.extend(
             viewMatrix
         ) {
             if (this._actived) {
-                return !this.bounds.contains(point) && _hitTestChildren.base.call(
+                if (this.bounds.contains(viewMatrix._transformPoint(point))) {
+                    return new HitResult("fill", this);
+                }
+                return _hitTestChildren.base.call(
                     this,
                     point,
                     options,
@@ -247,6 +236,20 @@ var Artboard = Group.extend(
                     viewMatrix
                 );
             }
+        },
+
+        _remove: function _remove(notifySelf, notifyParent) {
+            if (this._project) {
+                var index = this._project._artboards.indexOf(this);
+                if (index != null) {
+                    this._project._artboards = this._project._artboards.splice(
+                        index,
+                        1
+                    );
+                }
+            }
+
+            return _remove.base.call(this, notifySelf, notifyParent);
         },
 
         draw: function draw(ctx, param, parentStrokeMatrix) {
@@ -298,7 +301,6 @@ var Artboard = Group.extend(
                     size.height
                 );
                 this._insertItem(0, clipItem);
-                // this.addChildren(clipItem);
 
                 clipItem.draw(ctx, param.extend({ clip: true }));
 

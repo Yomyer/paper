@@ -39,6 +39,7 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
     _activeItems: [],
     _mainTool: null,
     _itemSelector: null,
+    _artboards: [],
 
     // TODO: Add arguments to define pages
     /**
@@ -255,7 +256,7 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
      * @type Artboard[]
      */
     getArtboards: function() {
-        return this._children;
+        return this._artboards;
     },
 
     /**
@@ -817,7 +818,7 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
         var options = options | {};
 
         var args = {
-            class: Path,
+            class: Item,
             segments: true,
             stroke: true,
             curves: true,
