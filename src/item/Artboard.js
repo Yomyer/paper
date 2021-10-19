@@ -280,7 +280,7 @@ var Artboard = Group.extend(
         _remove: function _remove(notifySelf, notifyParent) {
             if (this._project) {
                 var index = this._project._artboards.indexOf(this);
-                if (index != null) {
+                if (index != -1) {
                     this._project._artboards.splice(
                         index,
                         1

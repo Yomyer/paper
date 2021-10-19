@@ -9,7 +9,7 @@
  *
  * All rights reserved.
  *
- * Date: Tue Oct 5 18:21:59 2021 +0200
+ * Date: Tue Oct 19 17:53:56 2021 +0200
  *
  ***
  *
@@ -4898,7 +4898,6 @@ new function() {
 	},
 
 	_remove: function(notifySelf, notifyParent) {
-		console.log('?');
 		var owner = this._getOwner(),
 			project = this._project,
 			index = this._index;
@@ -5766,6 +5765,20 @@ var Artboard = Group.extend(
 			} else {
 				return hitTestChildren();
 			}
+		},
+
+		_remove: function _remove(notifySelf, notifyParent) {
+			if (this._project) {
+				var index = this._project._artboards.indexOf(this);
+				if (index != -1) {
+					this._project._artboards.splice(
+						index,
+						1
+					);
+				}
+			}
+
+			return _remove.base.call(this, notifySelf, notifyParent);
 		},
 
 		draw: function draw(ctx, param, parentStrokeMatrix) {
