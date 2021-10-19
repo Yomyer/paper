@@ -4,8 +4,17 @@
         <meta charset="UTF-8" />
         <title>Animated Star</title>
         <link rel="stylesheet" href="../css/style.css" />
-        <script type="text/javascript" src="../../dist/paper-full.js"></script>
+        <script type="text/javascript" src="../../dist/index.js"></script>
         <script type="text/paperscript" canvas="canvas">
+            var artboard = new Artboard({
+                from: 600,
+                to: 1000,
+                fillColor: 'blue',
+                name: 'xD',
+                // opacity: 0.5,
+                //guide: true
+            });
+
             var rect = new Path.Rectangle({
                 from: 100,
                 to: 650,
@@ -15,7 +24,7 @@
             
             var gre = new Path.Rectangle({
                 from: 250,
-                to: 800,
+                to: 700,
                 fillColor: 'green',
             });
 
@@ -30,8 +39,6 @@
                 actived: true
             }));
 
-
-
             var artboard = new Artboard({
                 from: 150,
                 to: 500,
@@ -39,9 +46,11 @@
                 name: 'xD',
                 children: [gre, g],
                 // opacity: 0.5,
-                actived: true,
-                // guide: true
+                actived: false,
+                //guide: true
             });
+
+
 
             // var g = new Group(artboard);
 
@@ -72,16 +81,67 @@
             // console.log('Children', g.bounds)
             // console.log('Artboard', artboard.bounds)
 
-            function onMouseDown(event) {
-                path = event.item;
-                console.log(event.item);
+            function getPathByPoint(point, legacy){
+                var options = options | {};
+
+                var args = {
+                    class: Item,
+                    segments: true,
+                    stroke: true,
+                    curves: true,
+                    fill: true,
+                    guides: false,
+                    tolerance: 8 / project.view.zoom,
+                    legacy: legacy,
+                    match: function(hit){
+                        return (
+                            !hit.item.hasFill() &&
+                            !hit.item.blocked &&
+                            (options.filter ? options.filter(hit.item) : true)
+                        );
+                    }
+                };
+
+                var items = project.hitTestAll(point, Base.set(args, options)).concat(
+                    project.hitTestAll(point, 
+                        Base.set(args, {
+                            tolerance: 0,
+                            match: function(hit) {
+                                return !hit.item.blocked &&
+                                (options.filter ? options.filter(hit.item) : true);
+                            }
+                        }, options)
+                    )
+                );
+
+                if (!items.length) return null;
+                        console.log(items);
+               
+               return items[0].item;
             }
+
+            function onMouseDown(event) {
+                
+                var point = event.point;
+
+                path = getPathByPoint(point, event.modifiers.meta)
+            }
+
+            /*
+            function onMouseDown(event) {
+                var hit = project.hitTestAll(event.point);
+                path = hit.length && hit[0].item || null;
+                console.log(hit);
+            }
+            */
 
             function onMouseMove(event) {
                 project.deselectAll()
-                project.activeLayer.selected = false;
-                if (event.item)
-                    event.item.selected = true;
+                
+                var item = getPathByPoint(event.point, event.modifiers.meta);
+
+                if (item)
+                    item.selected = true;
             }
 
             function onMouseDrag(event) {

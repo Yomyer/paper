@@ -105,7 +105,8 @@ var Selector = Base.extend(
             this._owner = owner;
 
             var item = owner;
-            if (item.children && item.children.length === 1) {
+
+            if (item._class === 'Group' && item.children.length === 1) {
                 item = item.firstChild;
             }
 

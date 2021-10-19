@@ -26,12 +26,16 @@ var Artboard = Group.extend(
     /** @lends Artboard# */ {
         _class: "Artboard",
         _applyChildrenStyle: false,
-        _applyMatrix: false,
-        _canApplyMatrix: false,
+        //_applyMatrix: false,
+        //_canApplyMatrix: false,
+        _selectBounds: true,
+        _selectChildren: false,
         _drawing: false,
+        _getItemsInChildrens: true,
         _serializeFields: {
             size: null,
             poin: null,
+            children: []
         },
 
         initialize: function Artboard() {
@@ -40,7 +44,7 @@ var Artboard = Group.extend(
             this._children = [];
             this._namedChildren = {};
 
-            const rect = Rectangle.readNamed(args, "rectangle");
+            var rect = Rectangle.readNamed(args, "rectangle");
             if (rect) {
                 args[0].size = rect.getSize(true);
                 args[0].point = rect.getPoint(true);
@@ -157,8 +161,10 @@ var Artboard = Group.extend(
 
             this._project._activeArtboard = actived ? this : null;
 
-            this._selectBounds = actived;
-            this._selectChildren = !actived;
+            if (this.children.length) {
+                this._selectBounds = actived;
+                this._selectChildren = !actived;
+            }
 
             setActived.base.call(this, actived);
         },
@@ -173,9 +179,10 @@ var Artboard = Group.extend(
             return false;
         },
 
-        copyContent: function (source) {
+        copyContent: function copyContent(source) {
             this.setSize(source._size);
             this.setPoint(source._point);
+            copyContent.base.call(this, source);
         },
 
         getStrokeBounds: function (matrix) {
@@ -184,7 +191,7 @@ var Artboard = Group.extend(
             });
         },
 
-        _getBounds: function _getBounds(matrix, options) {
+        _getBounds: function(matrix, options) {
             var rect = new Rectangle(this._size).setTopLeft(
                     this._point.x,
                     this._point.y
@@ -201,7 +208,6 @@ var Artboard = Group.extend(
                     rect = rect.unite(children[i].bounds);
                 }
             }
-
             if (matrix) rect = matrix._transformBounds(rect);
             return strokeWidth
                 ? rect.expand(
@@ -213,28 +219,61 @@ var Artboard = Group.extend(
                 : rect;
         },
 
+        transform: function tranform(
+            matrix,
+            _applyRecursively,
+            _setApplyMatrix
+        ) {
+            if (!matrix) {
+                return;
+            }
+
+            var rect = matrix._transformBounds(this.bounds);
+            this._point.set(rect.x, rect.y);
+            this._size.set(rect.width, rect.height);
+
+            this._changed(/*#=*/ Change.MATRIX);
+
+            this._transformContent(matrix, _applyRecursively, _setApplyMatrix);
+        },
+
         _hitTestChildren: function _hitTestChildren(
             point,
             options,
             viewMatrix
         ) {
-            if (this._actived) {
+            var that = this;
+            function hitTestChildren() {
+                return _hitTestChildren.base.call(
+                    that,
+                    point,
+                    options,
+                    viewMatrix
+                );
+            }
+
+            if (options.legacy || this._actived || !this._children.length) {
                 if (this.bounds.contains(viewMatrix._transformPoint(point))) {
-                    return new HitResult("fill", this);
+                    var hit = new HitResult("fill", this);
+                    var match = options.match;
+
+                    if (match && !match(hit)) {
+                        hit = null;
+                    }
+
+                    if(options.legacy){
+                        hitTestChildren();
+                    }
+
+                    if (hit && options.all) {
+                        options.all.push(hit);
+                    }
+
+                    return hit;
                 }
-                return _hitTestChildren.base.call(
-                    this,
-                    point,
-                    options,
-                    viewMatrix
-                );
+                return hitTestChildren();
             } else {
-                return _hitTestChildren.base.call(
-                    this,
-                    point,
-                    options,
-                    viewMatrix
-                );
+                return hitTestChildren();
             }
         },
 
@@ -242,7 +281,7 @@ var Artboard = Group.extend(
             if (this._project) {
                 var index = this._project._artboards.indexOf(this);
                 if (index != null) {
-                    this._project._artboards = this._project._artboards.splice(
+                    this._project._artboards.splice(
                         index,
                         1
                     );

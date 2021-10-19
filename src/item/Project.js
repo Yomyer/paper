@@ -815,7 +815,7 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
      * @return {Item} the first item in the project matching the given criteria
      */
     getItemByPoint: function(point, options){
-        var options = options | {};
+        options = options || {};
 
         var args = {
             class: Item,
@@ -833,7 +833,7 @@ var Project = PaperScopeItem.extend(/** @lends Project# */{
                 );
             }
         };
-
+        
         var items = this.hitTestAll(point, Base.set(args, options)).concat(
             this.hitTestAll(point, 
                 Base.set(args, {

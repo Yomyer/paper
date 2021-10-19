@@ -66,6 +66,7 @@ var Item = Base.extend(Emitter, /** @lends Item# */{
     _selection: 0,
     _selectionCache: null,
     _selector: null,
+    _getItemsInChildrens: false,
     // Controls whether bounds should appear selected when the item is selected.
     // This is only turned off for Group, Layer and PathItem, where it can be
     // selected separately by setting item.bounds.selected = true;
@@ -447,6 +448,10 @@ new function() { // Injection scope for various item event handlers
     },
 
     setActived: function(actived){
+        if(this._parent && this._parent._actived){
+            return;
+        }
+
         if(actived && !this._project._activeItems[this.uid]){
             this._project._activeItems.push(this);
             this._project._activeItems[this.uid] = this;
@@ -458,6 +463,12 @@ new function() { // Injection scope for various item event handlers
             }
             
             delete this._project._activeItems[this.uid];
+        }
+
+        var children = this._children;
+        if(children && children.length){
+            for (var i = 0, l = children.length; i < l; i++)
+                children[i].setActived(false);
         }
 
         this._actived = actived;
@@ -2256,10 +2267,12 @@ new function() { // Injection scope for hit-test functions shared with project
                             : viewMatrix._shiftless().invert()))
                 || null;
         }
+
         // Transform the point back to the outer coordinate system.
         if (res && res.point) {
             res.point = matrix.transform(res.point);
         }
+        
         return res;
     },
 
@@ -2458,15 +2471,17 @@ new function() { // Injection scope for hit-test functions shared with project
                 items = param.items,
                 rect = param.rect;
             matrix = rect && (matrix || new Matrix());
+
             for (var i = 0, l = children && children.length; i < l; i++) {
                 var child = children[i],
                     childMatrix = matrix && matrix.appended(child._matrix),
                     add = true;
                 if (rect) {
                     var bounds = child.getBounds(childMatrix);
+
                     // Regardless of the setting of inside / overlapping, if the
                     // bounds don't even intersect, we can skip this child.
-                    if (!rect.intersects(bounds))
+                    if (!rect.intersects(bounds) && !child._getItemsInChildrens)
                         continue;
                     if (!(rect.contains(bounds)
                             // First check the bounds, if the rect is fully
@@ -2482,7 +2497,7 @@ new function() { // Injection scope for hit-test functions shared with project
                     if (firstOnly)
                         break;
                 }
-                if (param.recursive !== false) {
+                if (param.recursive !== false || child._getItemsInChildrens) {
                     _getItems(child, options, childMatrix, param, firstOnly);
                 }
                 if (firstOnly && items.length > 0)

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <title>Animated Star</title>
+        <link rel="stylesheet" href="../css/style.css" />
+        <script type="text/javascript" src="../../dist/paper-full.js"></script>
+        <script type="text/paperscript" canvas="canvas">
+            var artboard = new Artboard({
+                from: 600,
+                to: 1000,
+                fillColor: 'blue',
+                name: 'xD',
+                // opacity: 0.5,
+                //guide: true
+            });
+
+            var rect = new Path.Rectangle({
+                from: 100,
+                to: 650,
+                fillColor: 'red'
+            });
+
+            
+            var gre = new Path.Rectangle({
+                from: 250,
+                to: 700,
+                fillColor: 'green',
+            });
+
+            var g = new Group(new Path.Rectangle({
+                from: 200,
+                to: 600,
+                fillColor: 'yellow'
+            }),new Path.Rectangle({
+                from: 300,
+                to: 650,
+                fillColor: 'magenta',
+                actived: true
+            }));
+
+            var artboard = new Artboard({
+                from: 150,
+                to: 500,
+                fillColor: 'blue',
+                name: 'xD',
+                children: [gre, g],
+                // opacity: 0.5,
+                actived: true,
+                //guide: true
+            });
+
+
+
+            // var g = new Group(artboard);
+
+            /*
+            var path = new Path.Rectangle({
+                from: 150,
+                to: 500,
+                fillColor: 'yellow',
+                actived: true
+            });
+*/
+   
+
+            //console.log(path.bounds);
+            console.log(artboard.bounds);
+            artboard.scale(1.5)
+            // path.scale(1.2)
+            //console.log(path.bounds);
+           
+
+            // artboard.clipped = true
+
+
+            // console.log('Children', g.bounds)
+            // gre.translate(100)
+            // artboard.translate(10);
+            // g.opacity = 0.5
+            // console.log('Children', g.bounds)
+            // console.log('Artboard', artboard.bounds)
+            function onMouseDown(event) {
+                var options = options | {};
+                var point = event.point;
+
+                var args = {
+                    class: Item,
+                    segments: true,
+                    stroke: true,
+                    curves: true,
+                    fill: true,
+                    guides: false,
+                    tolerance: 8 / project.view.zoom,
+                    match: function(hit){
+                        return (
+                            !hit.item.hasFill() &&
+                            !hit.item.blocked &&
+                            (options.filter ? options.filter(hit.item) : true)
+                        );
+                    }
+                };
+
+                var items = project.hitTestAll(point, Base.set(args, options)).concat(
+                    project.hitTestAll(point, 
+                        Base.set(args, {
+                            tolerance: 0,
+                            match: function(hit) {
+                                return !hit.item.blocked &&
+                                (options.filter ? options.filter(hit.item) : true);
+                            }
+                        }, options)
+                    )
+                );
+
+                if (!items.length) return null;
+                        console.log(items);
+                path = items[0].item;
+            }
+
+            /*
+            function onMouseDown(event) {
+                var hit = project.hitTestAll(event.point);
+                path = hit.length && hit[0].item || null;
+                console.log(hit);
+            }
+            */
+
+            function onMouseMove(event) {
+                project.deselectAll()
+                project.activeLayer.selected = false;
+                if (event.item)
+                    event.item.selected = true;
+            }
+
+            function onMouseDrag(event) {
+                if(path){
+                    path.translate(event.delta)
+                    // path.position += event.delta;
+                }
+                // console.log('Children', g.bounds)
+                // console.log('Artboard', artboard.bounds)
+            }
+        </script>
+    </head>
+    <body>
+        <canvas id="canvas" resize></canvas>
+    </body>
+</html>

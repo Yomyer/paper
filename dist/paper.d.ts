@@ -9,7 +9,7 @@
  *
  * All rights reserved.
  *
- * Date: Fri Oct 1 17:55:53 2021 +0200
+ * Date: Tue Oct 5 18:21:59 2021 +0200
  *
  * This is an auto-generated type definition.
  */
@@ -3437,7 +3437,7 @@ declare namespace paper {
         activate(): void
 
         
-        on(eventName: string, handler: Function): Tool
+        on(eventName: string | Array<string>, handler: Function): Tool
 
         
         off(eventName: string, handler: Function): Tool

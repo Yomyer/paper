@@ -54,7 +54,8 @@ var PaperScope = Base.extend(/** @lends PaperScope# */{
             applyMatrix: true,
             insertItems: true,
             handleSize: 4,
-            hitTolerance: 0
+            hitTolerance: 0,
+            hitGuides: false
         });
         this.project = null;
         this.projects = [];
@@ -349,11 +350,18 @@ var PaperScope = Base.extend(/** @lends PaperScope# */{
 
     /**
      * 
-     * @param {String} eventName 
+     * @param {String|Array<string>} eventName 
      * @param {Function} handler 
      * @returns {Tool}
      */
      on: function(eventName, handler){
+        if (eventName instanceof Array) {
+            for (var key in eventName) {
+                this.on(eventName[key], handler);
+            }
+
+            return;
+        }
         if (!this._eventListeners) {
             this._eventListeners = {};
         }
