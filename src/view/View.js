@@ -741,6 +741,23 @@ var View = Base.extend(Emitter, /** @lends View# */{
         return this.viewToProject(DomEvent.getOffset(event, this._element));
     },
 
+
+    hitControls: function (point){
+        var  activeItemsInfo = this._project.getActiveItemsInfo();
+        var hit = null;
+
+        Base.each(this._project.corners, function(corner){
+            var center = activeItemsInfo[corner];
+            var rect = new Rectangle(center.x, center.y, 0, 0).expand(6);
+            
+            if(!hit && rect.contains(point)){
+                hit = corner;
+            }
+        });
+
+        return hit;
+    },
+
     /**
      * {@grouptitle Event Handlers}
      * Handler function to be called on each frame of an animation.
@@ -1320,6 +1337,7 @@ new function() { // Injection scope for event handling on the browser
          * tools.
          */
         _handleMouseEvent: function(type, event, point) {
+
             var itemEvents = this._itemEvents,
                 // Look up hitItems, which tells us whether a given native mouse
                 // event requires an item hit-test or not, before changing type
@@ -1360,12 +1378,19 @@ new function() { // Injection scope for event handling on the browser
             // mouse event types.
             mouse[type.substr(5)] = true;
 
+            if(this._project.activeItems.length){
+                hitItems = this._project.activeItems;
+                hit = this.hitControls(point);
+                hitItem = hit || hitItem;
+            }
             // Handle mouseenter / leave between items and views first.
             if (hitItems && hitItem !== overItem) {
                 if (overItem) {
+                    console.log(overItem);
                     emitMouseEvent(overItem, null, 'mouseleave', event, point);
                 }
                 if (hitItem) {
+                    console.log(hitItem);
                     emitMouseEvent(hitItem, null, 'mouseenter', event, point);
                 }
                 overItem = hitItem;

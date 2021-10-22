@@ -466,7 +466,6 @@ item.removeOnDown();
 item.removeOnDrag();
 item.removeOnUp();
 
-
 //
 // Layer
 //

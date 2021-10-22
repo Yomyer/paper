@@ -55,7 +55,9 @@ var PaperScope = Base.extend(/** @lends PaperScope# */{
             insertItems: true,
             handleSize: 4,
             hitTolerance: 0,
-            hitGuides: false
+            hitGuides: false,
+            activeStrokeColor: 'rgba(0, 142, 252, 1)',
+            activeFillColor: 'white'
         });
         this.project = null;
         this.projects = [];

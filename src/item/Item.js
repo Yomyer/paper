@@ -221,14 +221,14 @@ new function() { // Injection scope for various item event handlers
      *
      * @param {ChangeFlag} flags describes what exactly has changed
      */
-    _changed: function(flags) {
+    _changed: function(flags, _skipProject) {
         var symbol = this._symbol,
             cacheParent = this._parent || symbol,
             project = this._project;
         if (flags & /*#=*/ChangeFlag.GEOMETRY) {
             // Clear cached bounds, position and decomposed matrix whenever
             // geometry changes.
-            this._bounds = this._position = this._decomposed = undefined;
+            this._bounds = this._position = this._decomposed = this._activeInfo = undefined;
         }
         if (flags & /*#=*/ChangeFlag.MATRIX) {
             this._globalMatrix = undefined;
@@ -246,7 +246,7 @@ new function() { // Injection scope for various item event handlers
             // child triggers this notification on the parent.
             Item._clearBoundsCache(this);
         }
-        if (project)
+        if (project && !_skipProject)
             project._changed(flags, this);
         // If this item is a symbol's definition, notify it of the change too
         if (symbol)
@@ -434,44 +434,6 @@ new function() { // Injection scope for various item event handlers
 
     setUid: function(uid){
         this._uid = uid;
-    },
-
-    /**
-     * The if item is actived.
-     *
-     * @name Item#actived
-     * @type Boolean
-     * 
-    */
-    getActived: function(){
-        return this._actived;
-    },
-
-    setActived: function(actived){
-        if(this._parent && this._parent._actived){
-            return;
-        }
-
-        if(actived && !this._project._activeItems[this.uid]){
-            this._project._activeItems.push(this);
-            this._project._activeItems[this.uid] = this;
-        } else if (!actived && this._project._activeItems[this.uid] !== undefined){
-            var index = this._project._activeItems.indexOf(this);
- 
-            if(index !== -1){
-                this._project._activeItems.splice(index, 1);
-            }
-            
-            delete this._project._activeItems[this.uid];
-        }
-
-        var children = this._children;
-        if(children && children.length){
-            for (var i = 0, l = children.length; i < l; i++)
-                children[i].setActived(false);
-        }
-
-        this._actived = actived;
     },
 
     /**
@@ -2037,6 +1999,118 @@ new function() { // Injection scope for various item event handlers
         // found, because all we care for here is there are some or none:
         return this._asPathItem().getIntersections(item._asPathItem(), null,
                 _matrix, true).length > 0;
+    }
+}, /** @lends Item */ {
+    /**
+     * The if item is actived.
+     *
+     * @name Item#actived
+     * @type Boolean
+     * 
+    */
+    getActived: function(){
+        return this._actived;
+    },
+
+    setActived: function(actived){
+        if(this._parent && this._parent._actived){
+            return;
+        }
+
+        if(actived && !this._project._activeItems[this.uid]){
+            this._project._activeItems.push(this);
+            this._project._activeItems[this.uid] = this;
+        } else if (!actived && this._project._activeItems[this.uid] !== undefined){
+            var index = this._project._activeItems.indexOf(this);
+ 
+            if(index !== -1){
+                this._project._activeItems.splice(index, 1);
+            }
+            
+            delete this._project._activeItems[this.uid];
+        }
+
+        var children = this._children;
+        if(children && children.length){
+            for (var i = 0, l = children.length; i < l; i++)
+                children[i].setActived(false);
+        }
+
+        this._actived = actived;
+
+        this._changed(/*#=*/ Change.GEOMETRY);
+    },
+
+    /**
+     * The corner positions
+     *
+     * @name Item#cornerPositions
+     * @type Object {topLeft: Point, topRight: Point, bottomRight: Point, bottomLeft: Point}
+     * 
+    */
+    getCornerPositions: function(unrotated) {
+        var angle = this.angle;
+        var bounds = this.bounds;
+        
+        if (angle !== 0 && !unrotated) {
+
+            this.transform(new Matrix().rotate(-angle, this.getPosition(true)), false, false, true);
+            bounds = this.bounds.clone();
+            this.transform(new Matrix().rotate(angle, this.getPosition(true)), false, false, true);
+        }
+
+        var matrix = new Matrix().rotate(!unrotated && angle, bounds.center);
+        var corners = matrix._transformCorners(bounds);
+
+        return {
+            topLeft: new Point(corners[0], corners[1]),
+            topRight: new Point(corners[2], corners[3]),
+            bottomRight: new Point(corners[4], corners[5]),
+            bottomLeft: new Point(corners[6], corners[7]),
+        };
+    },
+
+    /**
+     * The info of active object
+     *
+     * @name Item#activeInfo
+     * @type Object {angle: number, width: number, height: number, center: Point, topCenter: Point, rightCenter: Point, bottomCenter: Point, leftCenter: Point, topLeft: Point, topRight: Point, bottomRight: Point, bottomLeft: Point}
+     * 
+    */
+    getActiveInfo: function() {
+        if(this._activeInfo){
+            return this._activeInfo;
+        }
+        
+        var corners = this.getCornerPositions();
+
+        return this._activeInfo = Base.set(corners, {
+            angle: this.angle,
+            width: corners.topLeft.subtract(corners.topRight).length,
+            hegiht: corners.topLeft.subtract(corners.bottomLeft).length,
+            center: corners.topLeft.add(corners.bottomRight).divide(2),
+            topCenter: corners.topLeft.add(corners.topRight).divide(2),
+            rightCenter: corners.topRight
+                .add(corners.bottomRight)
+                .divide(2),
+            bottomCenter: corners.bottomRight
+                .add(corners.bottomLeft)
+                .divide(2),
+            leftCenter: corners.bottomLeft.add(corners.topLeft).divide(2),
+        });
+    },
+
+    _drawActivation: function(ctx, unrotated) {
+        var corners = this.getCornerPositions(unrotated);
+        
+        ctx.beginPath();
+        ctx.moveTo(corners.topLeft.x, corners.topLeft.y);
+        ctx.lineTo(corners.topRight.x, corners.topRight.y);
+        ctx.lineTo(corners.bottomRight.x, corners.bottomRight.y);
+        ctx.lineTo(corners.bottomLeft.x, corners.bottomLeft.y);
+        ctx.closePath();
+        
+        ctx.stroke();
     }
 },
 new function() { // Injection scope for hit-test functions shared with project
@@ -3697,7 +3771,7 @@ new function() { // Injection scope for hit-test functions shared with project
     // @param {String[]} flags array of any of the following: 'objects',
     //        'children', 'fill-gradients', 'fill-patterns', 'stroke-patterns',
     //        'lines'. Default: ['objects', 'children']
-    transform: function(matrix, _applyRecursively, _setApplyMatrix) {
+    transform: function(matrix, _applyRecursively, _setApplyMatrix, _skypChanges) {
         var _matrix = this._matrix,
             transformMatrix = matrix && !matrix.isIdentity(),
             // If no matrix is provided, or the matrix is the identity, we might
@@ -3765,7 +3839,7 @@ new function() { // Injection scope for hit-test functions shared with project
         var bounds = this._bounds,
             position = this._position;
         if (transformMatrix || applyMatrix) {
-            this._changed(/*#=*/Change.MATRIX);
+            this._changed(/*#=*/Change.MATRIX, _skypChanges);
         }
         // Detect matrices that contain only translations and scaling
         // and transform the cached _bounds and _position without having to
@@ -4690,6 +4764,7 @@ new function() { // Injection scope for hit-test functions shared with project
             itemSelected = false;
         if ((itemSelected || boundsSelected || positionSelected)
                 && this._isUpdated(updateVersion)) {
+                    
             // Allow definition of selected color on a per item and per
             // layer level, with a fallback to #009dec
             var layer,

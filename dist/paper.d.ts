@@ -9,7 +9,7 @@
  *
  * All rights reserved.
  *
- * Date: Tue Oct 5 18:21:59 2021 +0200
+ * Date: Tue Oct 19 18:02:37 2021 +0200
  *
  * This is an auto-generated type definition.
  */
@@ -1393,11 +1393,6 @@ declare namespace paper {
         uid: string
 
         /** 
-         * The if item is actived.
-         */
-        actived: boolean
-
-        /** 
          * The angle of item
          */
         angle: number
@@ -1619,6 +1614,21 @@ declare namespace paper {
          * The index of this item within the list of its parent's children.
          */
         readonly index: number
+
+        /** 
+         * The if item is actived.
+         */
+        actived: boolean
+
+        /** 
+         * The corner positions
+         */
+        cornerPositions: {topLeft: Point, topRight: Point, bottomRight: Point, buttomLeft: Point}
+
+        /** 
+         * The info of active object
+         */
+        activeInfo: {width: number, height: number, topCenter: Point, rightCenter: Point, bottomCenter: Point, leftCenter: Point, topLeft: Point, topRight: Point, bottomRight: Point, buttomLeft: Point}
 
         /** 
          * The color of the stroke.
