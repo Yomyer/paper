@@ -65,6 +65,8 @@
 
 /*#*/ include('PaperScript.js');
 
+/*#*/ include('Selector.js');
+
 // There is no need to test interactions in node context.
 if (!isNodeContext) {
     /*#*/ include('Interactions.js');

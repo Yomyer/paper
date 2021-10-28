@@ -26,6 +26,14 @@ var ToolEvent = Event.extend(/** @lends ToolEvent# */{
     // Have ToolEvent#item fall back to returning null, not undefined.
     _item: null,
 
+    /**
+     * Creates a new Segment object.
+     *
+     * @name ToolEvent#initialize
+     * @param {Tool} [tool] 
+     * @param {String} [type] 
+     * @param {Object} [event]
+     */
     initialize: function ToolEvent(tool, type, event) {
         this.tool = tool;
         this.type = type;

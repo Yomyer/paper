@@ -196,7 +196,6 @@ function parseType(type, options, values = '') {
         if(/^Object (.*)$/.exec(singleType)){
             splittedType = splittedType.replace(/^Object (.*)$/, '$1');
         }
-
         if (['Number', 'String', 'Boolean', 'Object'].indexOf(singleType) >= 0) {
             if(singleType === 'String' && values){
                 splittedType = values.replace(/,/g, ' |').replace(/(?:\r\n|\r|\n)/g, '');

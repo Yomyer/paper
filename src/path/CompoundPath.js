@@ -27,6 +27,7 @@
  */
 var CompoundPath = PathItem.extend(/** @lends CompoundPath# */{
     _class: 'CompoundPath',
+    _applyChildrenStyle: false,
     _serializeFields: {
         children: []
     },

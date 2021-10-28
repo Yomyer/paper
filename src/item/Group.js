@@ -98,8 +98,8 @@ var Group = Item.extend(/** @lends Group# */{
             this.addChildren(Array.isArray(arg) ? arg : arguments);
     },
 
-    _changed: function _changed(flags) {
-        _changed.base.call(this, flags);
+    _changed: function _changed(flags, _skipProject) {
+        _changed.base.call(this, flags, _skipProject);
         if (flags & /*#=*/(ChangeFlag.CHILDREN | ChangeFlag.CLIPPING)) {
             // Clear cached clip item whenever hierarchy changes
             this._clipItem = undefined;

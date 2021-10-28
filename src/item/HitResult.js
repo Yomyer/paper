@@ -131,9 +131,11 @@ var HitResult = Base.extend(/** @lends HitResult# */{
                 // Hit test the corners and side-centers of the bounding box
                 bounds: false,
                 //  Hit items that are marked as guides
-                guides: true,
+                guides: paper.settings.hitGuides, // Ver como  hacer que funcione :O
                 // Only hit selected objects
-                selected: false
+                selected: false,
+
+                legacy: false
             }, options);
         }
     }

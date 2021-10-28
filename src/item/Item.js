@@ -49,6 +49,7 @@ var Item = Base.extend(Emitter, /** @lends Item# */{
     // All items apply their matrix by default.
     // Exceptions are Raster, SymbolItem, Clip and Shape.
     _applyMatrix: true,
+    _applyChildrenStyle: true,
     _canApplyMatrix: true,
     _canScaleStroke: false,
     _pivot: null,
@@ -65,6 +66,7 @@ var Item = Base.extend(Emitter, /** @lends Item# */{
     _selection: 0,
     _selectionCache: null,
     _selector: null,
+    _getItemsInChildrens: false,
     // Controls whether bounds should appear selected when the item is selected.
     // This is only turned off for Group, Layer and PathItem, where it can be
     // selected separately by setting item.bounds.selected = true;
@@ -86,6 +88,7 @@ var Item = Base.extend(Emitter, /** @lends Item# */{
         selected: false,
         data: {},
         uid: null,
+        angle: 0,
         actived: false
     },
     // Prioritize `applyMatrix` over `matrix`:
@@ -176,6 +179,7 @@ new function() { // Injection scope for various item event handlers
                 internal: true, insert: true, project: true, parent: true
             });
         }
+
         return hasProps;
     },
 
@@ -217,14 +221,14 @@ new function() { // Injection scope for various item event handlers
      *
      * @param {ChangeFlag} flags describes what exactly has changed
      */
-    _changed: function(flags) {
+    _changed: function(flags, _skipProject) {
         var symbol = this._symbol,
             cacheParent = this._parent || symbol,
             project = this._project;
         if (flags & /*#=*/ChangeFlag.GEOMETRY) {
             // Clear cached bounds, position and decomposed matrix whenever
             // geometry changes.
-            this._bounds = this._position = this._decomposed = undefined;
+            this._bounds = this._position = this._decomposed = this._activeInfo = undefined;
         }
         if (flags & /*#=*/ChangeFlag.MATRIX) {
             this._globalMatrix = undefined;
@@ -242,7 +246,7 @@ new function() { // Injection scope for various item event handlers
             // child triggers this notification on the parent.
             Item._clearBoundsCache(this);
         }
-        if (project)
+        if (project && !_skipProject)
             project._changed(flags, this);
         // If this item is a symbol's definition, notify it of the change too
         if (symbol)
@@ -417,7 +421,6 @@ new function() { // Injection scope for various item event handlers
     /**
      * The UID of the item.
      *
-     * @bean
      * @name Item#uid
      * @type String
      * */
@@ -434,37 +437,8 @@ new function() { // Injection scope for various item event handlers
     },
 
     /**
-     * The if item is actived.
-     *
-     * @bean
-     * @name Item#actived
-     * @type Boolean
-     * 
-    */
-    getActived: function(){
-        return this._actived;
-    },
-
-    setActived: function(actived){
-        var index = this.project._activeItems.findIndex(
-            (item) => item === this
-        );
-
-        if (index !== -1) {
-            this.project._activeItems.splice(index, 1);
-        }
-
-        !actived ||
-        (!this.project._activeItems.includes(this) &&
-            this.project._activeItems.push(this));
-
-        this._actived = actived;
-    },
-
-    /**
      * The angle of item
      *
-     * @bean
      * @name Item#angle
      * @type Number
      * 
@@ -483,7 +457,8 @@ new function() { // Injection scope for various item event handlers
      * @returns Selector
      */
     getSelector: function(){
-        return this._selector;
+        return Selector._generateSelector(this);
+        // return this._selector;
     },
 
     setSelector: function(selector){
@@ -523,7 +498,7 @@ new function() { // Injection scope for various item event handlers
                 this[key] = value;
                 this._changed(flags[name] || /*#=*/Change.ATTRIBUTE);
                 if(name === 'guide'){
-                    this._project.guidesLayer.addChild(this)
+                    this._project.guidesLayer.addChild(this);
                 }
             }
         };
@@ -1032,6 +1007,7 @@ new function() { // Injection scope for various item event handlers
         return [
             options.stroke ? 1 : 0,
             options.handle ? 1 : 0,
+            options.drawing ? 1 : 0,
             internal ? 1 : 0
         ].join('');
     },
@@ -1747,9 +1723,7 @@ new function() { // Injection scope for various item event handlers
         var copy = new this.constructor(Item.NO_INSERT),
             children = this._children,
             // Both `insert` and `deep` are true by default:
-            insert = Base.pick(options ? options.insert : undefined,
-                    // Also support boolean parameter for insert, default: true.
-                    options === undefined || options === true),
+            insert = Base.pick(options ? options.insert : undefined, true),
             deep = Base.pick(options ? options.deep : undefined, true);
         // On items with children, for performance reasons due to the way that
         // styles are currently "flattened" into existing children, we need to
@@ -1778,6 +1752,11 @@ new function() { // Injection scope for various item event handlers
             if (name !== orig)
                 copy.setName(name);
         }
+
+        if(options && options.keep){
+            copy._uid = this._uid;
+        }
+
         return copy;
     },
 
@@ -1811,7 +1790,7 @@ new function() { // Injection scope for various item event handlers
         // meaning the default value has been overwritten (default is on
         // prototype).
         var keys = ['_locked', '_visible', '_blendMode', '_opacity',
-                '_clipMask', '_guide'];
+                '_clipMask', '_guide', '_angle'];
         for (var i = 0, l = keys.length; i < l; i++) {
             var key = keys[i];
             if (source.hasOwnProperty(key))
@@ -2020,6 +1999,118 @@ new function() { // Injection scope for various item event handlers
         // found, because all we care for here is there are some or none:
         return this._asPathItem().getIntersections(item._asPathItem(), null,
                 _matrix, true).length > 0;
+    }
+}, /** @lends Item */ {
+    /**
+     * The if item is actived.
+     *
+     * @name Item#actived
+     * @type Boolean
+     * 
+    */
+    getActived: function(){
+        return this._actived;
+    },
+
+    setActived: function(actived){
+        if(this._parent && this._parent._actived){
+            return;
+        }
+
+        if(actived && !this._project._activeItems[this.uid]){
+            this._project._activeItems.push(this);
+            this._project._activeItems[this.uid] = this;
+        } else if (!actived && this._project._activeItems[this.uid] !== undefined){
+            var index = this._project._activeItems.indexOf(this);
+ 
+            if(index !== -1){
+                this._project._activeItems.splice(index, 1);
+            }
+            
+            delete this._project._activeItems[this.uid];
+        }
+
+        var children = this._children;
+        if(children && children.length){
+            for (var i = 0, l = children.length; i < l; i++)
+                children[i].setActived(false);
+        }
+
+        this._actived = actived;
+
+        this._changed(/*#=*/ Change.GEOMETRY);
+    },
+
+    /**
+     * The corner positions
+     *
+     * @name Item#cornerPositions
+     * @type Object {topLeft: Point, topRight: Point, bottomRight: Point, bottomLeft: Point}
+     * 
+    */
+    getCornerPositions: function(unrotated) {
+        var angle = this.angle;
+        var bounds = this.bounds;
+        
+        if (angle !== 0 && !unrotated) {
+
+            this.transform(new Matrix().rotate(-angle, this.getPosition(true)), false, false, true);
+            bounds = this.bounds.clone();
+            this.transform(new Matrix().rotate(angle, this.getPosition(true)), false, false, true);
+        }
+
+        var matrix = new Matrix().rotate(!unrotated && angle, bounds.center);
+        var corners = matrix._transformCorners(bounds);
+
+        return {
+            topLeft: new Point(corners[0], corners[1]),
+            topRight: new Point(corners[2], corners[3]),
+            bottomRight: new Point(corners[4], corners[5]),
+            bottomLeft: new Point(corners[6], corners[7]),
+        };
+    },
+
+    /**
+     * The info of active object
+     *
+     * @name Item#activeInfo
+     * @type Object {angle: number, width: number, height: number, center: Point, topCenter: Point, rightCenter: Point, bottomCenter: Point, leftCenter: Point, topLeft: Point, topRight: Point, bottomRight: Point, bottomLeft: Point}
+     * 
+    */
+    getActiveInfo: function() {
+        if(this._activeInfo){
+            return this._activeInfo;
+        }
+        
+        var corners = this.getCornerPositions();
+
+        return this._activeInfo = Base.set(corners, {
+            angle: this.angle,
+            width: corners.topLeft.subtract(corners.topRight).length,
+            hegiht: corners.topLeft.subtract(corners.bottomLeft).length,
+            center: corners.topLeft.add(corners.bottomRight).divide(2),
+            topCenter: corners.topLeft.add(corners.topRight).divide(2),
+            rightCenter: corners.topRight
+                .add(corners.bottomRight)
+                .divide(2),
+            bottomCenter: corners.bottomRight
+                .add(corners.bottomLeft)
+                .divide(2),
+            leftCenter: corners.bottomLeft.add(corners.topLeft).divide(2),
+        });
+    },
+
+    _drawActivation: function(ctx, unrotated) {
+        var corners = this.getCornerPositions(unrotated);
+        
+        ctx.beginPath();
+        ctx.moveTo(corners.topLeft.x, corners.topLeft.y);
+        ctx.lineTo(corners.topRight.x, corners.topRight.y);
+        ctx.lineTo(corners.bottomRight.x, corners.bottomRight.y);
+        ctx.lineTo(corners.bottomLeft.x, corners.bottomLeft.y);
+        ctx.closePath();
+        
+        ctx.stroke();
     }
 },
 new function() { // Injection scope for hit-test functions shared with project
@@ -2250,10 +2341,12 @@ new function() { // Injection scope for hit-test functions shared with project
                             : viewMatrix._shiftless().invert()))
                 || null;
         }
+
         // Transform the point back to the outer coordinate system.
         if (res && res.point) {
             res.point = matrix.transform(res.point);
         }
+        
         return res;
     },
 
@@ -2452,15 +2545,17 @@ new function() { // Injection scope for hit-test functions shared with project
                 items = param.items,
                 rect = param.rect;
             matrix = rect && (matrix || new Matrix());
+
             for (var i = 0, l = children && children.length; i < l; i++) {
                 var child = children[i],
                     childMatrix = matrix && matrix.appended(child._matrix),
                     add = true;
                 if (rect) {
                     var bounds = child.getBounds(childMatrix);
+
                     // Regardless of the setting of inside / overlapping, if the
                     // bounds don't even intersect, we can skip this child.
-                    if (!rect.intersects(bounds))
+                    if (!rect.intersects(bounds) && !child._getItemsInChildrens)
                         continue;
                     if (!(rect.contains(bounds)
                             // First check the bounds, if the rect is fully
@@ -2476,7 +2571,7 @@ new function() { // Injection scope for hit-test functions shared with project
                     if (firstOnly)
                         break;
                 }
-                if (param.recursive !== false) {
+                if (param.recursive !== false || child._getItemsInChildrens) {
                     _getItems(child, options, childMatrix, param, firstOnly);
                 }
                 if (firstOnly && items.length > 0)
@@ -2632,7 +2727,7 @@ new function() { // Injection scope for hit-test functions shared with project
      * @param {number} index 
      */
     sendToIndex: function (index) {
-        this.layer.insertChild(index, this)
+        this.layer.insertChild(index, this);
     },
     
     /**
@@ -2899,6 +2994,9 @@ new function() { // Injection scope for hit-test functions shared with project
             index = this._index;
         if (this._style)
             this._style._dispose();
+
+        Selector.clear(this);  
+        
         if (owner) {
             // Handle named children separately from index:
             if (this._name)
@@ -3021,7 +3119,7 @@ new function() { // Injection scope for hit-test functions shared with project
         var numChildren = children ? children.length : 0;
         if (recursively) {
             // In recursive check, item is empty if all its children are empty.
-            for (var i = 0; i < numChildren; i++) {
+            for (var i = 0; i < numChildren; i++) {                
                 if (!children[i].isEmpty(recursively)) {
                     return false;
                 }
@@ -3491,7 +3589,7 @@ new function() { // Injection scope for hit-test functions shared with project
         var args = arguments,
             value = (rotate ? Base : Point).read(args),
             center = Point.read(args, 0, { readNull: true });
-        
+
         if(rotate) this._angle += value;
 
         return this.transform(new Matrix()[key](value,
@@ -3673,7 +3771,7 @@ new function() { // Injection scope for hit-test functions shared with project
     // @param {String[]} flags array of any of the following: 'objects',
     //        'children', 'fill-gradients', 'fill-patterns', 'stroke-patterns',
     //        'lines'. Default: ['objects', 'children']
-    transform: function(matrix, _applyRecursively, _setApplyMatrix) {
+    transform: function(matrix, _applyRecursively, _setApplyMatrix, _skypChanges) {
         var _matrix = this._matrix,
             transformMatrix = matrix && !matrix.isIdentity(),
             // If no matrix is provided, or the matrix is the identity, we might
@@ -3741,7 +3839,7 @@ new function() { // Injection scope for hit-test functions shared with project
         var bounds = this._bounds,
             position = this._position;
         if (transformMatrix || applyMatrix) {
-            this._changed(/*#=*/Change.MATRIX);
+            this._changed(/*#=*/Change.MATRIX, _skypChanges);
         }
         // Detect matrices that contain only translations and scaling
         // and transform the cached _bounds and _position without having to
@@ -4666,6 +4764,7 @@ new function() { // Injection scope for hit-test functions shared with project
             itemSelected = false;
         if ((itemSelected || boundsSelected || positionSelected)
                 && this._isUpdated(updateVersion)) {
+                    
             // Allow definition of selected color on a per item and per
             // layer level, with a fallback to #009dec
             var layer,

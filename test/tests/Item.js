@@ -1111,8 +1111,9 @@ test('Item#angle', function(){
     });
 
     circle.rotate(20)
+    circle.rotate(20)
 
-    equals(circle.angle, 20, circle.angle);
+    equals(circle.angle, 40, circle.angle);
 });
 
 test('Item#guide', function(){

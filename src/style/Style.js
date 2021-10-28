@@ -208,7 +208,7 @@ var Style = Base.extend(new function() {
             var owner = this._owner,
                 children = owner && owner._children,
                 applyToChildren = children && children.length > 0
-                    && !(owner instanceof CompoundPath),
+                    && owner._applyChildrenStyle,
                 value;
             // If the owner has children, walk through all of them and see if
             // they all have the same style.

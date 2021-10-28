@@ -872,6 +872,8 @@ var Rectangle = Base.extend(/** @lends Rectangle# */{
             var point = Point.read(arguments);
             this[setX](point.x);
             this[setY](point.y);
+
+            return this;
         };
     }, {
         // Enforce creation of beans, as bean getters have hidden parameters

@@ -136,8 +136,8 @@ var Path = PathItem.extend(/** @lends Path# */{
         this._closed = source._closed;
     },
 
-    _changed: function _changed(flags) {
-        _changed.base.call(this, flags);
+    _changed: function _changed(flags, _skipProject) {
+        _changed.base.call(this, flags, _skipProject);
         if (flags & /*#=*/ChangeFlag.GEOMETRY) {
             this._length = this._area = undefined;
             if (flags & /*#=*/ChangeFlag.SEGMENTS) {
