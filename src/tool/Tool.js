@@ -170,7 +170,9 @@ var Tool = PaperScopeItem.extend(
          * @type Boolean
          */
         getMainActived: function () {
-            return this._scope.mainTool.getActived();
+            if (this._scope.mainTool) {
+                return this._scope.mainTool.getActived();
+            }
         },
 
         /**
@@ -180,7 +182,14 @@ var Tool = PaperScopeItem.extend(
          * @type void
          */
         activeMain: function () {
-            this._scope.mainTool.activate();
+            if (this._scope.mainTool) {
+                this._scope.mainTool.activate();
+            }else{
+                this._scope.tool = undefined;
+                this._scope.mainTool = undefined;
+            }
+
+            
         },
 
         /**

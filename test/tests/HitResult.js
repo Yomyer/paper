@@ -25,7 +25,9 @@ test('Hit-testing options', function() {
         center: false,
         bounds: false,
         guides: false,
-        selected: false
+        selected: false,
+        legacy: false,
+        controls: true
     };
     equals(HitResult.getOptions(), defaultOptions, 'Default options');
 });

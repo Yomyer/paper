@@ -48,7 +48,7 @@ var Artboard = Group.extend(
             if (rect) {
                 args[0].size = rect.getSize(true);
                 args[0].point = rect.getPoint(true);
-            }
+            }            
 
             if (!this._initialize(args[0]))
                 this.addChildren(Array.isArray(args) ? args : arguments);
@@ -208,6 +208,7 @@ var Artboard = Group.extend(
                     rect = rect.unite(children[i].bounds);
                 }
             }
+
             if (matrix) rect = matrix._transformBounds(rect);
             return strokeWidth
                 ? rect.expand(

@@ -1,5 +1,5 @@
 /*!
- * Paper.js v0.12.15-main - The Swiss Army Knife of Vector Graphics Scripting.
+ * Paper.js v0.12.15-controls - The Swiss Army Knife of Vector Graphics Scripting.
  * http://paperjs.org/
  *
  * Copyright (c) 2011 - 2020, Jürg Lehni & Jonathan Puckey
@@ -9,7 +9,7 @@
  *
  * All rights reserved.
  *
- * Date: Tue Oct 19 18:02:37 2021 +0200
+ * Date: Fri Oct 22 18:39:35 2021 +0200
  *
  * This is an auto-generated type definition.
  */
@@ -452,6 +452,68 @@ declare namespace paper {
          *     path
          */
         constructor(object: object)
+
+    }
+
+    
+    class ControlItem  {
+
+    }
+
+    
+    class Controls  {
+        
+        item: string
+
+        
+        corner: string
+
+        
+        offset: Point
+
+        
+        readonly controls: any[]
+
+        
+        readonly angle: number
+
+        
+        readonly width: number
+
+        
+        readonly height: number
+
+        
+        readonly center: Point
+
+        
+        readonly topLeft: Point
+
+        
+        readonly topCenter: Point
+
+        
+        readonly topRight: Point
+
+        
+        readonly rightCenter: Point
+
+        
+        readonly bottomCenter: Point
+
+        
+        readonly bottomLeft: Point
+
+        
+        readonly leftCenter: Point
+
+
+        /** 
+         * @param item - the item to be added as a child
+         * 
+         * @return the added item, or `null` if adding was not possible
+         */
+        addControl(item: Item, name: any): Item
 
     }
 
@@ -1623,12 +1685,12 @@ declare namespace paper {
         /** 
          * The corner positions
          */
-        cornerPositions: {topLeft: Point, topRight: Point, bottomRight: Point, buttomLeft: Point}
+        cornerPositions: {topLeft: Point, topRight: Point, bottomRight: Point, bottomLeft: Point}
 
         /** 
          * The info of active object
          */
-        activeInfo: {width: number, height: number, topCenter: Point, rightCenter: Point, bottomCenter: Point, leftCenter: Point, topLeft: Point, topRight: Point, bottomRight: Point, buttomLeft: Point}
+        activeInfo: {angle: number, width: number, height: number, center: Point, topCenter: Point, rightCenter: Point, bottomCenter: Point, leftCenter: Point, topLeft: Point, topRight: Point, bottomRight: Point, bottomLeft: Point}
 
         /** 
          * The color of the stroke.
@@ -3358,6 +3420,8 @@ declare namespace paper {
         Artboard: typeof Artboard
         Color: typeof Color
         CompoundPath: typeof CompoundPath
+        ControlItem: typeof ControlItem
+        Controls: typeof Controls
         Curve: typeof Curve
         CurveLocation: typeof CurveLocation
         Event: typeof Event
@@ -5090,6 +5154,11 @@ declare namespace paper {
          * The layers contained within the project.
          */
         readonly layers: Layer[]
+
+        /** 
+         * The controls within the project.
+         */
+        readonly controls: Controls
 
         /** 
          * The layer which is currently active. New items will be created on this
@@ -7626,6 +7695,8 @@ declare module '@yomyer/paper'
     export class Artboard extends paper.Artboard {}
     export class Color extends paper.Color {}
     export class CompoundPath extends paper.CompoundPath {}
+    export class ControlItem extends paper.ControlItem {}
+    export class Controls extends paper.Controls {}
     export class Curve extends paper.Curve {}
     export class CurveLocation extends paper.CurveLocation {}
     export class Event extends paper.Event {}

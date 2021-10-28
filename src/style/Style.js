@@ -164,7 +164,7 @@ var Style = Base.extend(new function() {
             var owner = this._owner,
                 children = owner && owner._children,
                 applyToChildren = children && children.length > 0
-                    && !(owner instanceof CompoundPath);
+                    && owner._applyChildrenStyle;
             // Only unify styles on children of Groups, excluding CompoundPaths.
             if (applyToChildren) {
                 for (var i = 0, l = children.length; i < l; i++)

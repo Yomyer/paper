@@ -56,7 +56,30 @@
                 children: [single, group]
             });
 
+            project.controls.on('mouseenter', function(item){
+                console.log(item);
+            });
 
+            project.controls.on('click', function(item){
+                console.log(item);
+            });
+
+            
+
+            var control = new ControlItem('center', 0, 
+                new Shape.Ellipse({
+                    size: 100,
+                    fillColor: 'green'
+                })
+            );
+            control.setOffset([10, 0])
+            control.on('click', function(item) {
+                console.log('xDDDD')
+            });
+
+            project.controls.addControl(control, 'test');
+
+            //view.zoom = 1.2;
 
             // var g = new Group(artboard);
 
@@ -82,6 +105,7 @@
                     curves: true,
                     fill: true,
                     guides: false,
+                    controls: false,
                     tolerance: 8 / project.view.zoom,
                     legacy: legacy,
                     match: function(hit){
@@ -111,14 +135,16 @@
             }
 
             function onMouseDown(event) {
-                project.deactivateAll();
-                var point = event.point;
+                if(!(event.item instanceof ControlItem)){
+                    project.deactivateAll();
+                    var point = event.point;
 
-                path = getPathByPoint(point, event.modifiers.meta)
-                if(path){
-                    path.actived = true;
+                    path = getPathByPoint(point, event.modifiers.meta)
+
+                    if(path){
+                        path.actived = true;
+                    }
                 }
-                
             }
 
             /*
@@ -133,9 +159,13 @@
                 project.deselectAll()
                 
                 var item = getPathByPoint(event.point, event.modifiers.meta);
+                
 
-                if (item)
+                if (item){
+                    console.log(item.bounds);
                     item.selected = true;
+                }
+                    
             }
 
             function onMouseDrag(event) {

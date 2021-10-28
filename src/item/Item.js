@@ -176,10 +176,13 @@ new function() { // Injection scope for various item event handlers
         if (hasProps && props !== Item.NO_INSERT) {
             this.set(props, {
                 // Filter out these properties as they were handled above:
-                internal: true, insert: true, project: true, parent: true
+                internal: true, insert: true, project: true, parent: true, actived: true
             });
+            
+            if(props.actived !== undefined){
+                this.setActived(props.actived);
+            }
         }
-
         return hasProps;
     },
 
@@ -939,6 +942,7 @@ new function() { // Injection scope for various item event handlers
         // allowing the code to share caches between #strokeBounds and #bounds.
         if (!opts.stroke || this.getStrokeScaling())
             opts.cacheItem = this;
+            
         // If we're caching bounds, pass on this item as cacheItem, so
         // the children can setup _boundsCache structures for it.
         var rect = this._getCachedBounds(hasMatrix && matrix, opts).rect;
@@ -2042,18 +2046,17 @@ new function() { // Injection scope for various item event handlers
     },
 
     /**
-     * The corner positions
+     * The corners
      *
-     * @name Item#cornerPositions
-     * @type Object {topLeft: Point, topRight: Point, bottomRight: Point, bottomLeft: Point}
+     * @name Item#corners
+     * @type Array<number>
      * 
     */
-    getCornerPositions: function(unrotated) {
-        var angle = this.angle;
+    getCorners: function(unrotated) {
+        var angle = this._angle;
         var bounds = this.bounds;
-        
-        if (angle !== 0 && !unrotated) {
 
+        if (angle !== 0 && !unrotated) {
             this.transform(new Matrix().rotate(-angle, this.getPosition(true)), false, false, true);
             bounds = this.bounds.clone();
             this.transform(new Matrix().rotate(angle, this.getPosition(true)), false, false, true);
@@ -2061,6 +2064,19 @@ new function() { // Injection scope for various item event handlers
 
         var matrix = new Matrix().rotate(!unrotated && angle, bounds.center);
         var corners = matrix._transformCorners(bounds);
+
+        return corners;
+    },
+    
+    /**
+     * The corner positions
+     *
+     * @name Item#cornersPosition
+     * @type Object {topLeft: Point, topRight: Point, bottomRight: Point, bottomLeft: Point}
+     * 
+    */
+     getCornersPosition: function(unrotated) {
+        var corners = this.getCorners(unrotated);
 
         return {
             topLeft: new Point(corners[0], corners[1]),
@@ -2082,7 +2098,7 @@ new function() { // Injection scope for various item event handlers
             return this._activeInfo;
         }
         
-        var corners = this.getCornerPositions();
+        var corners = this.getCornersPosition();
 
         return this._activeInfo = Base.set(corners, {
             angle: this.angle,
@@ -2100,14 +2116,14 @@ new function() { // Injection scope for various item event handlers
         });
     },
 
-    _drawActivation: function(ctx, unrotated) {
-        var corners = this.getCornerPositions(unrotated);
-        
+    _drawActivation: function(ctx, matrix, unrotated) {
+        var corners = matrix._transformCoordinates(this.getCorners(unrotated), this.getCorners(unrotated), 4);
+       
         ctx.beginPath();
-        ctx.moveTo(corners.topLeft.x, corners.topLeft.y);
-        ctx.lineTo(corners.topRight.x, corners.topRight.y);
-        ctx.lineTo(corners.bottomRight.x, corners.bottomRight.y);
-        ctx.lineTo(corners.bottomLeft.x, corners.bottomLeft.y);
+        ctx.moveTo(corners[0], corners[1]);
+        ctx.lineTo(corners[2], corners[3]);
+        ctx.lineTo(corners[4], corners[5]);
+        ctx.lineTo(corners[6], corners[7]);
         ctx.closePath();
         
         ctx.stroke();
@@ -2134,6 +2150,14 @@ new function() { // Injection scope for hit-test functions shared with project
         // NOTE: _exclude is only used in Group#_hitTestChildren()
         // to exclude #clipItem
         var children = this._children;
+
+        if(this instanceof Project){
+            var controls = this._controls._children;
+            if(controls && this._activeItems.length){
+                children = children.concat(controls);
+            }
+        }
+
         if (children) {
             // Loop backwards, so items that get drawn last are tested first.
             for (var i = children.length - 1; i >= 0; i--) {

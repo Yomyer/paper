@@ -1138,4 +1138,6 @@ test('Item#actived', function(){
 
     equals(circle.actived, true)
     equals(project.activeItems.length, 1);
+
+    circle.actived = false
 });

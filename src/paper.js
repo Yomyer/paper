@@ -68,6 +68,8 @@ var paper = function(self, undefined) {
 /*#*/ include('item/SymbolItem.js');
 /*#*/ include('item/SymbolDefinition.js');
 /*#*/ include('item/HitResult.js');
+/*#*/ include('item/ControlItem.js');
+/*#*/ include('item/Controls.js');
 
 /*#*/ include('path/Segment.js');
 /*#*/ include('path/SegmentPoint.js');

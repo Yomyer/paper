@@ -41,7 +41,7 @@ var Project = PaperScopeItem.extend(
         _mainTool: null,
         _itemSelector: null,
         _artboards: [],
-        _corners: ['topLeft', 'topCenter', 'topRight', 'rightCenter', 'bottomRight', 'bottomCenter', 'bottomLeft', 'leftCenter'],
+        _controls: null,
 
         // TODO: Add arguments to define pages
         /**
@@ -65,6 +65,7 @@ var Project = PaperScopeItem.extend(
             this._namedChildren = {};
             this._activeLayer = null;
             this._currentStyle = new Style(null, null, this);
+            this._controls = Controls.create(Item.NO_INSERT);
             // If no view is provided, we create a 1x1 px canvas view just so we
             // have something to do size calculations with.
             // (e.g. PointText#_getBounds)
@@ -107,10 +108,6 @@ var Project = PaperScopeItem.extend(
                 }
             }
 
-            if (flags & /*#=*/ ChangeFlag.GEOMETRY) {
-                this._activeItemsInfo = null;
-            }
-
             // Have project keep track of changed items so they can be iterated.
             // This can be used for example to update the SVG tree. Needs to be
             // activated in Project
@@ -126,6 +123,10 @@ var Project = PaperScopeItem.extend(
                         (changesById[id] = { item: item, flags: flags })
                     );
                 }
+            }
+
+            if(this._controls){
+                this._controls._changed(flags, item);
             }
         },
 
@@ -238,8 +239,18 @@ var Project = PaperScopeItem.extend(
          * @bean
          * @type Layer[]
          */
-        getLayers: function () {
+         getLayers: function () {
             return this._children;
+        },
+
+        /**
+         * The controls within the project.
+         *
+         * @bean
+         * @type Controls
+         */
+        getControls: function () {
+            return this._controls;
         },
 
         // TODO: Define #setLayers()?
@@ -835,6 +846,7 @@ var Project = PaperScopeItem.extend(
                 curves: true,
                 fill: true,
                 guides: false,
+                controls: false,
                 tolerance: 8 / this.view.zoom,
                 match: function (hit) {
                     return (
@@ -870,7 +882,7 @@ var Project = PaperScopeItem.extend(
 
             return items[0].item;
         },
-
+        
         /**
          * Deactive all items
          *
@@ -1058,126 +1070,12 @@ var Project = PaperScopeItem.extend(
                 ctx.restore();
             }
 
-            if (this._activeItems.length) {
+            if (this._activeItems.length && this._controls) {
                 ctx.save();
-                ctx.lineWidth = 0.5;
-                ctx.strokeStyle = paper.settings.activeStrokeColor;
-                ctx.fillStyle = paper.settings.activeFillColor;
-                var items = this._activeItems;
-
-                for (var item of items) {
-                    item._drawActivation(ctx, this._activeItems.length > 1);
-                }
-
-                this.drawActiveItemsBound(ctx);
-
-                ctx.lineWidth = 1;
-                this.drawControls(ctx);
-
+                this._controls.draw(ctx, matrix, pixelRatio)
                 ctx.restore();
             }
         },
 
-        /**
-         * The info of active object
-         *
-         * @name Project#corners
-         * @type Array
-         *
-         */
-        getCorners(){
-            return this._corners;
-        },
-
-        /**
-         * The info of active object
-         *
-         * @name Project#activeItemsInfo
-         * @type Object {angle: number, width: number, height: number, center: Point, topCenter: Point, rightCenter: Point, bottomCenter: Point, leftCenter: Point, topLeft: Point, topRight: Point, bottomRight: Point, bottomLeft: Point}
-         *
-         */
-        getActiveItemsInfo() {
-            if (this._activeItemsInfo) {
-                return this._activeItemsInfo;
-            }
-            var items = this._activeItems;
-
-            this._activeItemsInfo = items[0].activeInfo;
-
-            if (items.length > 1) {
-                var rect = items[0].bounds;
-                for (var item of items) {
-                    rect = rect.unite(item.bounds);
-                }
-                this._activeItemsInfo = {
-                    angle: 0,
-                    width: rect.width,
-                    height: rect.height,
-                    center: rect.center,
-                    topCenter: rect.topCenter,
-                    rightCenter: rect.rightCenter,
-                    bottomCenter: rect.bottomCenter,
-                    leftCenter: rect.leftCenter,
-                    topLeft: rect.topLeft,
-                    topRight: rect.topRight,
-                    bottomRight: rect.bottomRight,
-                    bottomLeft: rect.bottomLeft,
-                };
-            }
-
-            return this._activeItemsInfo;
-        },
-
-        drawControlHandler(ctx, point, angle) {
-            var rect = new Rectangle(point.x, point.y, 0, 0).expand(6);
-            if(angle){
-                var matrix = new Matrix().rotate(angle, rect.center);
-                var corners = matrix._transformCorners(rect);
-                rect = {
-                    topLeft: new Point(corners[0], corners[1]),
-                    topRight: new Point(corners[2], corners[3]),
-                    bottomRight: new Point(corners[4], corners[5]),
-                    bottomLeft: new Point(corners[6], corners[7]),
-                }
-
-            }
-
-            ctx.beginPath();
-            ctx.moveTo(rect.topLeft.x, rect.topLeft.y);
-            ctx.lineTo(rect.topRight.x, rect.topRight.y);
-            ctx.lineTo(rect.bottomRight.x, rect.bottomRight.y);
-            ctx.lineTo(rect.bottomLeft.x, rect.bottomLeft.y);
-            ctx.closePath();
-
-            ctx.stroke();
-            ctx.fill();
-
-        },
-
-        drawControls(ctx) {
-            var activeItemsInfo = this.getActiveItemsInfo();
-            var that = this;
-
-            Base.each(this._corners, function(corner){
-                that.drawControlHandler(ctx, activeItemsInfo[corner], activeItemsInfo.angle);
-            });
-
-            // this.drawControlHandler(ctx, activeItemsInfo.center, activeItemsInfo.angle);
-        },
-
-        drawActiveItemsBound(ctx){
-            if(this._activeItems.length > 1){
-                var activeItemsInfo = this.getActiveItemsInfo();
-
-                ctx.beginPath();
-                ctx.moveTo(activeItemsInfo.topLeft.x, activeItemsInfo.topLeft.y);
-                ctx.lineTo(activeItemsInfo.topRight.x, activeItemsInfo.topRight.y);
-                ctx.lineTo(activeItemsInfo.bottomRight.x, activeItemsInfo.bottomRight.y);
-                ctx.lineTo(activeItemsInfo.bottomLeft.x, activeItemsInfo.bottomLeft.y);
-                ctx.closePath();
-                
-                ctx.stroke();
-            }
-        }
     }
 );

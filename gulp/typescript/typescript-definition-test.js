@@ -442,7 +442,6 @@ item.removeOnMove();
 item.removeOnDown();
 item.removeOnDrag();
 item.removeOnUp();
-item.cornerPositions;
 //
 // Layer
 //

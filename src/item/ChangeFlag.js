@@ -39,7 +39,9 @@ var ChangeFlag = {
     // Clipping in one of the child items
     CLIPPING: 0x800,
     // The view has been transformed
-    VIEW: 0x1000
+    VIEW: 0x1000,
+    // The view has been transformed
+    CONTROL: 0x10000
 };
 
 // Shortcuts to often used ChangeFlag values including APPEARANCE
