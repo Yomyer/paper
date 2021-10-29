@@ -9,7 +9,7 @@
  *
  * All rights reserved.
  *
- * Date: Fri Oct 22 18:39:35 2021 +0200
+ * Date: Thu Oct 28 17:12:08 2021 +0200
  *
  ***
  *
@@ -4539,19 +4539,17 @@ new function() {
 	},
 
 	setActived: function(actived){
-		if(this._parent && this._parent._actived){
-			return;
-		}
-
-		if(actived && !this._project._activeItems[this.uid]){
+		if(actived && !this._project._activeItems[this.uid] &&  !this._project._activeItems[this._parent.uid]){
 			this._project._activeItems.push(this);
 			this._project._activeItems[this.uid] = this;
-		} else if (!actived && this._project._activeItems[this.uid] !== undefined){
+			this._actived = true;
+		} else if (!actived){
 			var index = this._project._activeItems.indexOf(this);
 			if(index !== -1){
 				this._project._activeItems.splice(index, 1);
 			}
 			delete this._project._activeItems[this.uid];
+			this._actived = false;
 		}
 
 		var children = this._children;
@@ -4559,8 +4557,6 @@ new function() {
 			for (var i = 0, l = children.length; i < l; i++)
 				children[i].setActived(false);
 		}
-
-		this._actived = actived;
 
 		this._changed(9);
 	},
@@ -4643,6 +4639,13 @@ new function() {
 
 	function hitTestChildren(point, options, viewMatrix, _exclude) {
 		var children = this._children;
+
+		if(this instanceof Project){
+			var controls = this._controls._children;
+			if(controls && this._activeItems.length){
+				children = children.concat(controls);
+			}
+		}
 
 		if (children) {
 			for (var i = children.length - 1; i >= 0; i--) {
@@ -5039,7 +5042,7 @@ new function() {
 			if (notifySelf && project._changes)
 				this._changed(5);
 			if (notifyParent)
-				owner._changed(11, this);
+				owner._changed(11);
 			this._parent = null;
 			return true;
 		}
@@ -5772,9 +5775,6 @@ var Artboard = Group.extend(
 		},
 
 		setActived: function setActived(actived) {
-			if (this._project._activeArtboard) {
-				this._project._activeArtboard._actived = false;
-			}
 
 			this._project._activeArtboard = actived ? this : null;
 
@@ -7085,8 +7085,8 @@ var Controls = Item.extend({
 		}
 
 		if (flags & 8) {
+			console.log('update?');
 			if(this._project._activeItems.length){
-				if(this._project._activeItems.includes(item)){
 					var that = this;
 					var controls = this._children;
 
@@ -7098,7 +7098,6 @@ var Controls = Item.extend({
 						controls[x].setRotation(that._angle);
 						controls[x].setPosition(that[controls[x].corner]);
 					}
-				}
 			}else{
 				this._angle = this._width = this._height = 0;
 				this._center = this._topCenter = this._rightCenter = this._bottomCenter =

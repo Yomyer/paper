@@ -249,6 +249,7 @@ new function() { // Injection scope for various item event handlers
             // child triggers this notification on the parent.
             Item._clearBoundsCache(this);
         }
+        
         if (project && !_skipProject)
             project._changed(flags, this);
         // If this item is a symbol's definition, notify it of the change too
@@ -2017,14 +2018,11 @@ new function() { // Injection scope for various item event handlers
     },
 
     setActived: function(actived){
-        if(this._parent && this._parent._actived){
-            return;
-        }
-
-        if(actived && !this._project._activeItems[this.uid]){
+        if(actived && !this._project._activeItems[this.uid] &&  !this._project._activeItems[this._parent.uid]){
             this._project._activeItems.push(this);
             this._project._activeItems[this.uid] = this;
-        } else if (!actived && this._project._activeItems[this.uid] !== undefined){
+            this._actived = true;
+        } else if (!actived){
             var index = this._project._activeItems.indexOf(this);
  
             if(index !== -1){
@@ -2032,6 +2030,7 @@ new function() { // Injection scope for various item event handlers
             }
             
             delete this._project._activeItems[this.uid];
+            this._actived = false;
         }
 
         var children = this._children;
@@ -2039,8 +2038,6 @@ new function() { // Injection scope for various item event handlers
             for (var i = 0, l = children.length; i < l; i++)
                 children[i].setActived(false);
         }
-
-        this._actived = actived;
 
         this._changed(/*#=*/ Change.GEOMETRY);
     },
@@ -3043,7 +3040,8 @@ new function() { // Injection scope for hit-test functions shared with project
                 this._changed(/*#=*/Change.INSERTION);
             // Notify owner of changed children (this can be the project too).
             if (notifyParent)
-                owner._changed(/*#=*/Change.CHILDREN, this);
+                owner._changed(/*#=*/Change.CHILDREN);
+                //owner._changed(/*#=*/Change.CHILDREN, this);
             this._parent = null;
             return true;
         }

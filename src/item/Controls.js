@@ -50,8 +50,9 @@ var Controls = Item.extend(/** @lends Controls# */{
         }
 
         if (flags & /*#=*/ ChangeFlag.GEOMETRY) {
+            console.log('update?');
             if(this._project._activeItems.length){
-                if(this._project._activeItems.includes(item)){
+                // if(this._project._activeItems.includes(item)){
                     var that = this;
                     var controls = this._children;
 
@@ -64,7 +65,7 @@ var Controls = Item.extend(/** @lends Controls# */{
                         controls[x].setPosition(that[controls[x].corner]);
                     }
               
-                }
+                //}
             }else{
                 this._angle = this._width = this._height = 0;
                 this._center = this._topCenter = this._rightCenter = this._bottomCenter = 

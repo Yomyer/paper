@@ -155,9 +155,9 @@ var Artboard = Group.extend(
         },
 
         setActived: function setActived(actived) {
-            if (this._project._activeArtboard) {
+            /*if (this._project._activeArtboard) {
                 this._project._activeArtboard._actived = false;
-            }
+            }*/
 
             this._project._activeArtboard = actived ? this : null;
 
