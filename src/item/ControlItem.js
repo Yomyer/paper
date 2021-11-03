@@ -19,13 +19,13 @@ var ControlItem = Item.extend(
             } else {
                 this._item = this._createDefaultItem();
             }
-            this._item.setParent(this);
+            this._item._control = this;
             this._corner = corner;
             this._offset = Point.read([offset]);
             this._style = this._item._style;
         },
 
-        setActived() {},
+        setActived: function () {},
 
         /**
          * @bean
@@ -63,8 +63,8 @@ var ControlItem = Item.extend(
             this._offset = Point.read(arguments);
         },
 
-        getPosition: function () {
-            return this._item.getPosition();
+        getPosition: function (_dontLink) {
+            return this._item.getPosition(_dontLink);
         },
 
         setPosition: function (/* point */) {
@@ -89,7 +89,7 @@ var ControlItem = Item.extend(
             this._item.setBounds(arguments);
         },
 
-        _createDefaultItem() {
+        _createDefaultItem: function () {
             return new Shape.Rectangle({
                 size: 7,
                 insert: false,
@@ -97,12 +97,29 @@ var ControlItem = Item.extend(
         },
 
         _hitTest: function (point, options) {
-            if (this._item._locked || !this._item._visible || !options.controls) {
+            var scale = this._project._view.getScaling();
+            var hit;
+
+            if (
+                this._item._locked ||
+                !this._item._visible ||
+                !options.controls
+            ) {
                 return null;
             }
 
-            if (this._item.bounds.contains(point)) {
-                var hit = new HitResult("fill", this);
+            this._item.transform(
+                new Matrix().scale(
+                    new Point(1).divide(scale),
+                    this.getPosition(true)
+                ),
+                false,
+                false,
+                true
+            );
+
+            if (this._item._hitTest(point, options)) {
+                hit = new HitResult("fill", this);
                 var match = options.match;
 
                 if (match && !match(hit)) {
@@ -112,9 +129,16 @@ var ControlItem = Item.extend(
                 if (hit && options.all) {
                     options.all.push(hit);
                 }
-
-                return hit;
             }
+
+            this._item.transform(
+                new Matrix().scale(scale, this.getPosition(true)),
+                false,
+                false,
+                true
+            );
+
+            return hit;
         },
 
         emit: function emit(type, event) {
@@ -149,10 +173,25 @@ var ControlItem = Item.extend(
             );
         },
 
-        draw(ctx, param) {
-            if (this._item) {
-                this._item.draw(ctx, param);
-            }
+        draw: function (ctx, param) {
+            var scale = this._project._view.getScaling();
+
+            this._item.transform(
+                new Matrix().scale(
+                    new Point(1).divide(scale),
+                    this.getPosition(true)
+                ),
+                false,
+                false,
+                true
+            );
+            this._item.draw(ctx, param);
+            this._item.transform(
+                new Matrix().scale(scale, this.getPosition(true)),
+                false,
+                false,
+                true
+            );
         },
     }
 );

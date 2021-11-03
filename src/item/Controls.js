@@ -48,11 +48,9 @@ var Controls = Item.extend(/** @lends Controls# */{
             item.setRotation(this.angle);
             item.setPosition(this[item.corner]);
         }
-
         if (flags & /*#=*/ ChangeFlag.GEOMETRY) {
-            console.log('update?');
             if(this._project._activeItems.length){
-                // if(this._project._activeItems.includes(item)){
+                if(!item._control){
                     var that = this;
                     var controls = this._children;
 
@@ -64,12 +62,11 @@ var Controls = Item.extend(/** @lends Controls# */{
                         controls[x].setRotation(that._angle);
                         controls[x].setPosition(that[controls[x].corner]);
                     }
-              
-                //}
+                }
             }else{
                 this._angle = this._width = this._height = 0;
                 this._center = this._topCenter = this._rightCenter = this._bottomCenter = 
-                this._leftCenter = this._topLeft = this._topRight = this._bottomRight = this._bottomLeft= null
+                this._leftCenter = this._topLeft = this._topRight = this._bottomRight = this._bottomLeft = null;
             }
         }  
     },
@@ -81,7 +78,7 @@ var Controls = Item.extend(/** @lends Controls# */{
      * @return {Item} the added item, or `null` if adding was not possible
      */
     addControl: function(item, name){
-        item.remove()
+        item.remove();
         this._children.push(item);
         
         if(name){
@@ -94,7 +91,7 @@ var Controls = Item.extend(/** @lends Controls# */{
      * @bean
      * @type Number
      */
-    getX(){
+    getX: function(){
         return this._topLeft.x;
     },
 
@@ -102,7 +99,7 @@ var Controls = Item.extend(/** @lends Controls# */{
      * @bean
      * @type Number
      */
-    getY(){
+    getY: function(){
         return this._topLeft.y;
     },
 
@@ -183,7 +180,7 @@ var Controls = Item.extend(/** @lends Controls# */{
      * @bean
      * @type Point
      */
-    getBottomRight(){
+    getBottomRight: function(){
         return this._bottomRight;
     },
 
@@ -207,27 +204,19 @@ var Controls = Item.extend(/** @lends Controls# */{
      * @bean
      * @type Point
      */
-    getBottomLeft(){
-        return this._bottomLeft;
-    },
-    
-    /**
-     * @bean
-     * @type Point
-     */
     getLeftCenter: function(){
         return this._leftCenter;
     },
 
-    _getActiveItemsInfo() {
+    _getActiveItemsInfo: function() {
         var items = this._project._activeItems;
         if(items.length){
             var info = items[0].activeInfo;
 
             if (items.length > 1) {
                 var rect = items[0].bounds;
-                for (var item of items) {
-                    rect = rect.unite(item.bounds);
+                for (var x in items) {
+                    rect = rect.unite(items[x].bounds);
                 }
                 info = {
                     angle: 0,
@@ -254,13 +243,13 @@ var Controls = Item.extend(/** @lends Controls# */{
         var items = this._project._activeItems;
         var controls = this._children;
 
-        matrix = matrix.appended(this.getGlobalMatrix(true))
+        matrix = matrix.appended(this.getGlobalMatrix(true));
 
         ctx.lineWidth = 0.3;
         ctx.strokeStyle = this.strokeColor.toCanvasStyle(ctx, matrix);
 
-        for (var item of items) {
-            item._drawActivation(ctx, matrix, items.length > 1);
+        for (var x in items) {
+            items[x]._drawActivation(ctx, matrix, items.length > 1);
         }
 
         var bounds = matrix._transformBounds(this);
@@ -276,7 +265,6 @@ var Controls = Item.extend(/** @lends Controls# */{
             ctx.stroke();
         }
 
-
         matrix.applyToContext(ctx);
 
         var param = new Base({
@@ -288,6 +276,7 @@ var Controls = Item.extend(/** @lends Controls# */{
         });
 
         for (var x = 0; x < controls.length; x++) {
+            // new Matrix().scale(0.95).applyToContext(ctx);
             this._children[x].draw(ctx, param);
         }
         

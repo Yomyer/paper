@@ -9,7 +9,7 @@
  *
  * All rights reserved.
  *
- * Date: Thu Oct 28 17:12:08 2021 +0200
+ * Date: Fri Oct 29 17:38:42 2021 +0200
  *
  ***
  *
@@ -6912,13 +6912,13 @@ var ControlItem = Item.extend(
 			} else {
 				this._item = this._createDefaultItem();
 			}
-			this._item.setParent(this);
+			this._item._control = this;
 			this._corner = corner;
 			this._offset = Point.read([offset]);
 			this._style = this._item._style;
 		},
 
-		setActived() {},
+		setActived: function () {},
 
 		getItem: function () {
 			return this._item;
@@ -6944,8 +6944,8 @@ var ControlItem = Item.extend(
 			this._offset = Point.read(arguments);
 		},
 
-		getPosition: function () {
-			return this._item.getPosition();
+		getPosition: function (_dontLink) {
+			return this._item.getPosition(_dontLink);
 		},
 
 		setPosition: function () {
@@ -6970,7 +6970,7 @@ var ControlItem = Item.extend(
 			this._item.setBounds(arguments);
 		},
 
-		_createDefaultItem() {
+		_createDefaultItem: function () {
 			return new Shape.Rectangle({
 				size: 7,
 				insert: false,
@@ -6978,12 +6978,29 @@ var ControlItem = Item.extend(
 		},
 
 		_hitTest: function (point, options) {
-			if (this._item._locked || !this._item._visible || !options.controls) {
+			var scale = this._project._view.getScaling();
+			var hit;
+
+			if (
+				this._item._locked ||
+				!this._item._visible ||
+				!options.controls
+			) {
 				return null;
 			}
 
-			if (this._item.bounds.contains(point)) {
-				var hit = new HitResult("fill", this);
+			this._item.transform(
+				new Matrix().scale(
+					new Point(1).divide(scale),
+					this.getPosition(true)
+				),
+				false,
+				false,
+				true
+			);
+
+			if (this._item._hitTest(point, options)) {
+				hit = new HitResult("fill", this);
 				var match = options.match;
 
 				if (match && !match(hit)) {
@@ -6993,9 +7010,16 @@ var ControlItem = Item.extend(
 				if (hit && options.all) {
 					options.all.push(hit);
 				}
-
-				return hit;
 			}
+
+			this._item.transform(
+				new Matrix().scale(scale, this.getPosition(true)),
+				false,
+				false,
+				true
+			);
+
+			return hit;
 		},
 
 		emit: function emit(type, event) {
@@ -7030,10 +7054,25 @@ var ControlItem = Item.extend(
 			);
 		},
 
-		draw(ctx, param) {
-			if (this._item) {
-				this._item.draw(ctx, param);
-			}
+		draw: function (ctx, param) {
+			var scale = this._project._view.getScaling();
+
+			this._item.transform(
+				new Matrix().scale(
+					new Point(1).divide(scale),
+					this.getPosition(true)
+				),
+				false,
+				false,
+				true
+			);
+			this._item.draw(ctx, param);
+			this._item.transform(
+				new Matrix().scale(scale, this.getPosition(true)),
+				false,
+				false,
+				true
+			);
 		},
 	}
 );
@@ -7083,10 +7122,9 @@ var Controls = Item.extend({
 			item.setRotation(this.angle);
 			item.setPosition(this[item.corner]);
 		}
-
 		if (flags & 8) {
-			console.log('update?');
 			if(this._project._activeItems.length){
+				if(!item._control){
 					var that = this;
 					var controls = this._children;
 
@@ -7098,27 +7136,28 @@ var Controls = Item.extend({
 						controls[x].setRotation(that._angle);
 						controls[x].setPosition(that[controls[x].corner]);
 					}
+				}
 			}else{
 				this._angle = this._width = this._height = 0;
 				this._center = this._topCenter = this._rightCenter = this._bottomCenter =
-				this._leftCenter = this._topLeft = this._topRight = this._bottomRight = this._bottomLeft= null
+				this._leftCenter = this._topLeft = this._topRight = this._bottomRight = this._bottomLeft = null;
 			}
 		}
 	},
 
 	addControl: function(item, name){
-		item.remove()
+		item.remove();
 		this._children.push(item);
 		if(name){
 			this._children[name || item.name] = item;
 			this._changed(65536, item);
 		}
 	},
-	getX(){
+	getX: function(){
 		return this._topLeft.x;
 	},
 
-	getY(){
+	getY: function(){
 		return this._topLeft.y;
 	},
 
@@ -7158,7 +7197,7 @@ var Controls = Item.extend({
 		return this._rightCenter;
 	},
 
-	getBottomRight(){
+	getBottomRight: function(){
 		return this._bottomRight;
 	},
 
@@ -7170,22 +7209,19 @@ var Controls = Item.extend({
 		return this._bottomLeft;
 	},
 
-	getBottomLeft(){
-		return this._bottomLeft;
-	},
 	getLeftCenter: function(){
 		return this._leftCenter;
 	},
 
-	_getActiveItemsInfo() {
+	_getActiveItemsInfo: function() {
 		var items = this._project._activeItems;
 		if(items.length){
 			var info = items[0].activeInfo;
 
 			if (items.length > 1) {
 				var rect = items[0].bounds;
-				for (var item of items) {
-					rect = rect.unite(item.bounds);
+				for (var x in items) {
+					rect = rect.unite(items[x].bounds);
 				}
 				info = {
 					angle: 0,
@@ -7210,13 +7246,13 @@ var Controls = Item.extend({
 		var items = this._project._activeItems;
 		var controls = this._children;
 
-		matrix = matrix.appended(this.getGlobalMatrix(true))
+		matrix = matrix.appended(this.getGlobalMatrix(true));
 
 		ctx.lineWidth = 0.3;
 		ctx.strokeStyle = this.strokeColor.toCanvasStyle(ctx, matrix);
 
-		for (var item of items) {
-			item._drawActivation(ctx, matrix, items.length > 1);
+		for (var x in items) {
+			items[x]._drawActivation(ctx, matrix, items.length > 1);
 		}
 
 		var bounds = matrix._transformBounds(this);
