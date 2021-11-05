@@ -1,5 +1,5 @@
 /*!
- * Paper.js v0.12.15-controls - The Swiss Army Knife of Vector Graphics Scripting.
+ * Paper.js v0.12.15-grids - The Swiss Army Knife of Vector Graphics Scripting.
  * http://paperjs.org/
  *
  * Copyright (c) 2011 - 2020, Jürg Lehni & Jonathan Puckey
@@ -9,7 +9,7 @@
  *
  * All rights reserved.
  *
- * Date: Wed Nov 3 11:20:34 2021 +0100
+ * Date: Fri Nov 5 16:57:03 2021 +0100
  *
  ***
  *
@@ -822,7 +822,7 @@ var PaperScope = Base.extend({
 		}
 	},
 
-	version: "0.12.15-controls",
+	version: "0.12.15-grids",
 
 	getView: function() {
 		var project = this.project;
@@ -3631,16 +3631,12 @@ var Project = PaperScopeItem.extend(
 				ctx.restore();
 			}
 
-			ctx.save();
-			matrix.applyToContext(ctx);
-			ctx.lineWidth = 0.5 * (1 / this._view.getZoom());
-			ctx.beginPath();
-			ctx.moveTo(30, 0);
-			ctx.lineTo(30, 150);
-			ctx.moveTo(31, 0);
-			ctx.lineTo(31, 150);
-			ctx.stroke();
-			ctx.restore();
+			if(this._grid){
+				ctx.save();
+				matrix.applyToContext(ctx);
+				this._grid.draw(ctx, matrix, pixelRatio);
+				ctx.restore();
+			}
 
 			if (this._activeItems.length && this._controls) {
 				ctx.save();
@@ -15107,6 +15103,142 @@ var CanvasView = View.extend({
 		return true;
 	}
 });
+
+var Grid = Base.extend(
+	 {
+		_class: "Grid",
+
+		_color: null,
+		_size: null,
+		_opacity: null,
+		_parent: null,
+
+		initialize: function Grid(arg0, arg1, arg2, arg3) {
+			var type = typeof arg0;
+
+			if (arg0 instanceof Artboard || arg0 instanceof Project) {
+				this._set(arg0, arg1, arg2, arg3);
+			} else if (type === "undefined" || arg0 === null) {
+				this._set(paper.project);
+			} else {
+				this._set(arg0);
+			}
+		},
+
+		_set: function (parent, color, size, opacity) {
+			this.parent = parent;
+			this.color = color;
+			this.size = size;
+			this.opacity = opacity;
+			return this;
+		},
+
+		getColor: function () {
+			return this._color;
+		},
+
+		setColor: function () {
+			this._color = Color.read((arguments[0] && arguments) || ["black"]);
+		},
+
+		getSize: function () {
+			return this._size;
+		},
+
+		setSize: function () {
+			this._size = Size.read((arguments[0] && arguments) || [1]);
+		},
+
+		getOpacity: function () {
+			return this._opacity;
+		},
+
+		setOpacity: function (opacity) {
+			this._opacity = opacity || 0.1;
+		},
+
+		getParent: function () {
+			return this._parent;
+		},
+
+		setParent: function (parent) {
+			this._parent = parent;
+			this._parent.grid = this;
+		},
+
+		getProject: function () {
+			return this.isView() ? this._parent : this._parent._project;
+		},
+
+		getView: function () {
+			return this.getProject()._view;
+		},
+
+		getBounds: function () {
+			return this.getView().bounds;
+		},
+
+		isView() {
+			return this.getParent() instanceof Project;
+		},
+
+		_drawHorizontal(ctx) {
+			var bounds = this.getBounds(),
+				size = bounds.size.round(),
+				point = bounds.point.round(),
+				offset = this.getSize().width;
+
+			for (var x = point.x - point.x % offset; x <= size.width + point.x; x = x + offset) {
+				ctx.moveTo(x, point.y - offset);
+				ctx.lineTo(x, point.y + size.height + offset);
+			}
+		},
+
+		_drawVertical(ctx) {
+			var bounds = this.getBounds(),
+				size = bounds.size.round(),
+				point = bounds.point.round();
+			offset = this.getSize().height;
+
+			for (var y = point.y - point.y % offset; y <= size.height + point.y; y = y + offset) {
+				ctx.moveTo(point.x - offset, y);
+				ctx.lineTo(point.x + size.width + offset, y);
+			}
+		},
+
+		draw: function (ctx, matrix, pixelRatio) {
+			var project = this.getProject(),
+				view = this.getView(),
+				zoom = view.getZoom();
+
+			if (this.isView() && zoom < 5) {
+				return;
+			}
+
+			ctx.strokeStyle = this._color.toCanvasStyle(ctx, matrix);
+			ctx.globalAlpha = this._opacity;
+			ctx.lineWidth = 0.5 * (1 / zoom);
+			ctx.beginPath();
+			this._drawHorizontal(ctx);
+			this._drawVertical(ctx);
+			ctx.stroke();
+		},
+	},
+	new function () {
+		item = {
+			beans: true,
+			_grid: null,
+			getGrid: function () {
+				return this._grid;
+			},
+			setGrid: function (grid) {
+				this._grid = grid;
+			},
+		};
+		Artboard.inject(item);
+		Project.inject(item);
+	}
+);
 
 var Event = Base.extend({
 	_class: 'Event',

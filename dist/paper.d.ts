@@ -1,5 +1,5 @@
 /*!
- * Paper.js v0.12.15-controls - The Swiss Army Knife of Vector Graphics Scripting.
+ * Paper.js v0.12.15-grids - The Swiss Army Knife of Vector Graphics Scripting.
  * http://paperjs.org/
  *
  * Copyright (c) 2011 - 2020, Jürg Lehni & Jonathan Puckey
@@ -9,7 +9,7 @@
  *
  * All rights reserved.
  *
- * Date: Wed Nov 3 11:20:34 2021 +0100
+ * Date: Fri Nov 5 16:57:03 2021 +0100
  *
  * This is an auto-generated type definition.
  */
@@ -1342,6 +1342,47 @@ declare namespace paper {
          * @return a copy of the gradient-stop
          */
         clone(): GradientStop
+
+    }
+
+    
+    class Grid  {
+        
+        color: Color
+
+        
+        size: Size
+
+        
+        opacity: number
+
+        
+        parent: Artboard  |  Project
+
+        
+        readonly project: Project
+
+        
+        readonly view: Project
+
+
+        /** 
+         * Creates a Grid object.
+         */
+        constructor()
+
+        /** 
+         * Creates a Grid object.
+         */
+        constructor(parent: Artboard | Project, color: Color, Size: Size, opacity?: number)
+
+        /** 
+         * Creates a Grid object.
+         * 
+         * @param object - an object containing properties to be set on the
+         * rectangle
+         */
+        constructor(object: object)
 
     }
 
@@ -3450,6 +3491,7 @@ declare namespace paper {
         Event: typeof Event
         Gradient: typeof Gradient
         GradientStop: typeof GradientStop
+        Grid: typeof Grid
         Group: typeof Group
         HitResult: typeof HitResult
         Item: typeof Item
@@ -5428,7 +5470,7 @@ declare namespace paper {
         deactivateAll(): void
 
         /** 
-         * active all items
+         * active all items of project
          */
         activeAll(): void
 
@@ -7721,6 +7763,7 @@ declare module '@yomyer/paper'
     export class Event extends paper.Event {}
     export class Gradient extends paper.Gradient {}
     export class GradientStop extends paper.GradientStop {}
+    export class Grid extends paper.Grid {}
     export class Group extends paper.Group {}
     export class HitResult extends paper.HitResult {}
     export class Item extends paper.Item {}

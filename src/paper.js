@@ -98,6 +98,7 @@ var paper = function(self, undefined) {
 
 /*#*/ include('view/View.js');
 /*#*/ include('view/CanvasView.js');
+/*#*/ include('view/Grid.js');
 
 /*#*/ include('event/Event.js');
 /*#*/ include('event/KeyEvent.js');

@@ -1081,17 +1081,12 @@ var Project = PaperScopeItem.extend(
                 ctx.restore();
             }
 
-            // Grids
-            ctx.save();
-            matrix.applyToContext(ctx);
-            ctx.lineWidth = 0.5 * (1 / this._view.getZoom());
-            ctx.beginPath();
-            ctx.moveTo(30, 0);
-            ctx.lineTo(30, 150);
-            ctx.moveTo(31, 0);
-            ctx.lineTo(31, 150);
-            ctx.stroke();
-            ctx.restore();
+            if(this._grid){
+                ctx.save();
+                matrix.applyToContext(ctx);
+                this._grid.draw(ctx, matrix, pixelRatio);
+                ctx.restore();
+            }
 
             if (this._activeItems.length && this._controls) {
                 ctx.save();
