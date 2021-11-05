@@ -2018,6 +2018,7 @@ new function() { // Injection scope for various item event handlers
     },
 
     setActived: function(actived){
+
         if(actived && !this._project._activeItems[this.uid] &&  !this._project._activeItems[this._parent.uid]){
             this._project._activeItems.push(this);
             this._project._activeItems[this.uid] = this;
@@ -2039,7 +2040,7 @@ new function() { // Injection scope for various item event handlers
                 children[i].setActived(false);
         }
 
-        this._changed(/*#=*/ Change.GEOMETRY);
+        this._changed(/*#=*/Change.ACTIVE);
     },
 
     /**

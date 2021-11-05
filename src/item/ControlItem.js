@@ -97,7 +97,11 @@ var ControlItem = Item.extend(
         },
 
         _hitTest: function (point, options) {
-            var scale = this._project._view.getScaling();
+            if (this.isSmallZoom()) {
+                return null;
+            }
+
+            var zoom = this._project._view.getZoom();
             var hit;
 
             if (
@@ -109,10 +113,7 @@ var ControlItem = Item.extend(
             }
 
             this._item.transform(
-                new Matrix().scale(
-                    new Point(1).divide(scale),
-                    this.getPosition(true)
-                ),
+                new Matrix().scale(1 / zoom, this.getPosition(true)),
                 false,
                 false,
                 true
@@ -132,13 +133,19 @@ var ControlItem = Item.extend(
             }
 
             this._item.transform(
-                new Matrix().scale(scale, this.getPosition(true)),
+                new Matrix().scale(zoom, this.getPosition(true)),
                 false,
                 false,
                 true
             );
 
             return hit;
+        },
+
+        isSmallZoom: function(){
+            if (this._project._controls.width * this._project._view.getZoom() < 15) {
+                return true
+            }
         },
 
         emit: function emit(type, event) {
@@ -174,20 +181,26 @@ var ControlItem = Item.extend(
         },
 
         draw: function (ctx, param) {
-            var scale = this._project._view.getScaling();
+            if (this.isSmallZoom()) {
+                return;
+            }
+
+            var controls = this._project.controls;
+
+            this.setRotation(controls.angle);
+            this.setPosition(controls[this.corner]);
+
+            var zoom = this._project._view.getZoom();
 
             this._item.transform(
-                new Matrix().scale(
-                    new Point(1).divide(scale),
-                    this.getPosition(true)
-                ),
+                new Matrix().scale(1 / zoom, this.getPosition(true)),
                 false,
                 false,
                 true
             );
             this._item.draw(ctx, param);
             this._item.transform(
-                new Matrix().scale(scale, this.getPosition(true)),
+                new Matrix().scale(zoom, this.getPosition(true)),
                 false,
                 false,
                 true

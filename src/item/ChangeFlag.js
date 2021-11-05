@@ -41,7 +41,9 @@ var ChangeFlag = {
     // The view has been transformed
     VIEW: 0x1000,
     // The view has been transformed
-    CONTROL: 0x10000
+    CONTROL: 0x10000,
+    // The view has been transformed
+    ACTIVE: 0x100000
 };
 
 // Shortcuts to often used ChangeFlag values including APPEARANCE
@@ -59,5 +61,7 @@ var Change = {
     ATTRIBUTE: ChangeFlag.ATTRIBUTE | ChangeFlag.APPEARANCE,
     CONTENT: ChangeFlag.CONTENT | ChangeFlag.GEOMETRY | ChangeFlag.APPEARANCE,
     PIXELS: ChangeFlag.PIXELS | ChangeFlag.APPEARANCE,
-    VIEW: ChangeFlag.VIEW | ChangeFlag.APPEARANCE
+    VIEW: ChangeFlag.VIEW | ChangeFlag.APPEARANCE,
+    CONTROL: ChangeFlag.CONTROL | ChangeFlag.APPEARANCE,
+    ACTIVE: ChangeFlag.ACTIVE | ChangeFlag.APPEARANCE
 };

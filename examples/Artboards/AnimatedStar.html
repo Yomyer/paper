@@ -16,6 +16,14 @@
             });
 
             var rect = new Path.Rectangle({
+                from: 0,
+                to: 10,
+                fillColor: 'red',
+                rotation: 20,
+                actived: true
+            });
+
+            var rect = new Path.Rectangle({
                 from: [700, 100],
                 to: [1000, 300],
                 fillColor: 'red',
@@ -79,7 +87,6 @@
 
             project.controls.addControl(control, 'test');
 
-            view.zoom = 1.2;
 
             // var g = new Group(artboard);
 

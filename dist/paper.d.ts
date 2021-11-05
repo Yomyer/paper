@@ -9,7 +9,7 @@
  *
  * All rights reserved.
  *
- * Date: Fri Oct 22 18:39:35 2021 +0200
+ * Date: Wed Nov 3 11:20:34 2021 +0100
  *
  * This is an auto-generated type definition.
  */
@@ -475,6 +475,12 @@ declare namespace paper {
         readonly controls: any[]
 
         
+        readonly x: number
+
+        
+        readonly y: number
+
+        
         readonly angle: number
 
         
@@ -497,6 +503,9 @@ declare namespace paper {
 
         
         readonly rightCenter: Point
+
+        
+        readonly bottomRight: Point
 
         
         readonly bottomCenter: Point
@@ -1683,9 +1692,14 @@ declare namespace paper {
         actived: boolean
 
         /** 
+         * The corners
+         */
+        corners: Array<number>
+
+        /** 
          * The corner positions
          */
-        cornerPositions: {topLeft: Point, topRight: Point, bottomRight: Point, bottomLeft: Point}
+        cornersPosition: {topLeft: Point, topRight: Point, bottomRight: Point, bottomLeft: Point}
 
         /** 
          * The info of active object
@@ -1889,6 +1903,15 @@ declare namespace paper {
 
         
         static rotatePoint(point: Point, center: Point, angle: number): Point
+
+        /** 
+         * Returns the unique id.
+         * 
+         * @param size - The optional x portion of the Coordinate
+         * 
+         * @return the unique uid
+         */
+        static generate(size?: number): string
 
         /** 
          * Sets the properties of the passed object literal on this item to the
@@ -5405,6 +5428,11 @@ declare namespace paper {
         deactivateAll(): void
 
         /** 
+         * active all items
+         */
+        activeAll(): void
+
+        /** 
          * Exports (serializes) the project with all its layers and child items to a
          * JSON data object or string.
          * 
@@ -7225,15 +7253,6 @@ declare namespace paper {
 
     
     class UID  {
-
-        /** 
-         * Returns the unique id.
-         * 
-         * @param size - The optional x portion of the Coordinate
-         * 
-         * @return the unique uid
-         */
-        static generate(size?: number): string
 
     }
 

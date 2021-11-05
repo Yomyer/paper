@@ -2,289 +2,362 @@
  * @name Controls
  * @class
  */
-var Controls = Item.extend(/** @lends Controls# */{
-    _class: 'Controls',
-    _applyChildrenStyle: false,
-    _corners: ['topLeft', 'topCenter', 'topRight', 'rightCenter', 'bottomRight', 'bottomCenter', 'bottomLeft', 'leftCenter'],
-    _project: null,
-    _angle: 0,
-    _width: null,
-    _height: null,
-    _center: null,
-    _topCenter: null,
-    _rightCenter: null,
-    _bottomCenter: null,
-    _leftCenter: null,
-    _topLeft: null,
-    _topRight: null,
-    _bottomRight: null,
-    _bottomLeft: null,
-    _children: [],
+var Controls = Item.extend(
+    /** @lends Controls# */ {
+        _class: "Controls",
+        _applyChildrenStyle: false,
+        _corners: [
+            "topLeft",
+            "topCenter",
+            "topRight",
+            "rightCenter",
+            "bottomRight",
+            "bottomCenter",
+            "bottomLeft",
+            "leftCenter",
+        ],
+        _project: null,
+        _angle: 0,
+        _width: null,
+        _height: null,
+        _center: null,
+        _topCenter: null,
+        _rightCenter: null,
+        _bottomCenter: null,
+        _leftCenter: null,
+        _topLeft: null,
+        _topRight: null,
+        _bottomRight: null,
+        _bottomLeft: null,
+        _children: [],
+        _cornerItems: {},
+        _activeItemsInfo: null,
 
-    initialize: function Controls(arg) {
-        var that = this;
+        initialize: function Controls(arg) {
+            var that = this;
 
-        this._initialize(arg);
-        this._style.set({
-            shadowColor: 'rgba(0, 0, 0, 0.3)',
-            shadowBlur: 2,
-            shadowOffset: 1,
-            strokeColor: 'rgba(0, 142, 252, 1)',
-            fillColor: 'white',
-            strokeWidth: 0.2
-        });
+            this._initialize(arg);
+            this._style.set({
+                shadowColor: "rgba(0, 0, 0, 0.3)",
+                shadowBlur: 2,
+                shadowOffset: 1,
+                strokeColor: "rgba(0, 142, 252, 1)",
+                fillColor: "white",
+                strokeWidth: 0.2,
+            });
 
-        
-        Base.each(this._corners, function(corner){
-            var item = new ControlItem(corner);
-            item._style.set(that._style.clone());
-            that.addControl(item, corner);
-        });
-    },
+            Base.each(this._corners, function (corner) {
+                var item = new ControlItem(corner);
+                item._style.set(that._style.clone());
+                that.addControl(item, corner);
+            });
+        },
 
-    _changed: function(flags, item){
-
-        if(flags & /*#=*/ ChangeFlag.CONTROL){
-            item.setRotation(this.angle);
-            item.setPosition(this[item.corner]);
-        }
-        if (flags & /*#=*/ ChangeFlag.GEOMETRY) {
-            if(this._project._activeItems.length){
-                if(!item._control){
-                    var that = this;
-                    var controls = this._children;
-
-                    Base.each(this._getActiveItemsInfo(), function(value, key){
-                        that['_'+ key] = value || (['angle', 'widht', 'height'].includes(key) ? 0 : null);
-                    });
-
-                    for (var x =0; x < controls.length; x++) {
-                        controls[x].setRotation(that._angle);
-                        controls[x].setPosition(that[controls[x].corner]);
-                    }
-                }
-            }else{
-                this._angle = this._width = this._height = 0;
-                this._center = this._topCenter = this._rightCenter = this._bottomCenter = 
-                this._leftCenter = this._topLeft = this._topRight = this._bottomRight = this._bottomLeft = null;
+        _changed: function (flags, item) {
+            if (flags & /*#=*/ ChangeFlag.CONTROL) {
+                this._activeItemsInfo = null;
             }
-        }  
-    },
 
+            if (flags & /*#=*/ ChangeFlag.ACTIVE) {
+                this._cornerItems = {};
+            }
 
+            if (
+                item &&
+                (flags & /*#=*/ ChangeFlag.GEOMETRY ||
+                    flags & /*#=*/ ChangeFlag.ACTIVE) &&
+                !(item instanceof Layer) &&
+                !item.guide &&
+                !item._control &&
+                item.actived
+            ) {
+                this._activeItemsInfo = null;
+            }
+        },
 
-    /**
-     * @param {Item} item the item to be added as a child
-     * @return {Item} the added item, or `null` if adding was not possible
-     */
-    addControl: function(item, name){
-        item.remove();
-        this._children.push(item);
-        
-        if(name){
-            this._children[name || item.name] = item;
-            this._changed(/*#=*/ChangeFlag.CONTROL, item);
-        }
-    },
-    
-    /**
-     * @bean
-     * @type Number
-     */
-    getX: function(){
-        return this._topLeft.x;
-    },
+        /**
+         * @param {Item} item the item to be added as a child
+         * @return {Item} the added item, or `null` if adding was not possible
+         */
+        addControl: function (item, name) {
+            item.remove();
+            this._children.push(item);
 
-    /**
-     * @bean
-     * @type Number
-     */
-    getY: function(){
-        return this._topLeft.y;
-    },
+            if (name) {
+                this._children[name || item.name] = item;
+                this._changed(/*#=*/ Change.CONTROL, item);
+            }
+        },
 
-        
-    /**
-     * @bean
-     * @type Array
-     */
-    getControls: function(){
-        return this._children;
-    },
+        /**
+         * @bean
+         * @type Array
+         */
+        getControls: function () {
+            return this._children;
+        },
 
-    /**
-     * @bean
-     * @type Number
-     */
-    getAngle: function(){
-        return this._angle;
-    },
+        /**
+         * @bean
+         * @type Number
+         */
+        getX: function () {
+            return this._descomposeActiveItemsInfo("topLeft", "x") || 0;
+        },
 
-    /**
-     * @bean
-     * @type Number
-     */
-    getWidth: function(){
-        return this._width;
-    },
+        /**
+         * @bean
+         * @type Number
+         */
+        getY: function () {
+            return this._descomposeActiveItemsInfo("topLeft", "y") || 0;
+        },
 
-    /**
-     * @bean
-     * @type Number
-     */
-    getHeight: function(){
-        return this._height;
-    },
+        /**
+         * @bean
+         * @type Number
+         */
+        getAngle: function () {
+            return this._descomposeActiveItemsInfo("angle") || 0;
+        },
 
-    /**
-     * @bean
-     * @type Point
-     */
-    getCenter: function(){
-        return this._center;
-    },
+        /**
+         * @bean
+         * @type Number
+         */
+        getWidth: function () {
+            return this._descomposeActiveItemsInfo("width") || 0;
+        },
 
-    /**
-     * @bean
-     * @type Point
-     */
-    getTopLeft: function(){
-        return this._topLeft;
-    },
+        /**
+         * @bean
+         * @type Number
+         */
+        getHeight: function () {
+            return this._descomposeActiveItemsInfo("height") || 0;
+        },
 
-    /**
-     * @bean
-     * @type Point
-     */
-     getTopCenter: function(){
-        return this._topCenter;
-    },
+        /**
+         * @bean
+         * @type Point
+         */
+        getCenter: function () {
+            return this._descomposeActiveItemsInfo("center") || new Point(0, 0);
+        },
 
-    /**
-     * @bean
-     * @type Point
-     */
-    getTopRight: function(){
-        return this._topRight;
-    },
+        /**
+         * @bean
+         * @type Point
+         */
+        getTopLeft: function () {
+            return (
+                this._descomposeActiveItemsInfo("topLeft") || new Point(0, 0)
+            );
+        },
 
-    /**
-     * @bean
-     * @type Point
-     */
-    getRightCenter: function(){
-        return this._rightCenter;
-    },
+        /**
+         * @bean
+         * @type Point
+         */
+        getTopCenter: function () {
+            return (
+                this._descomposeActiveItemsInfo("topCenter") || new Point(0, 0)
+            );
+        },
 
-    /**
-     * @bean
-     * @type Point
-     */
-    getBottomRight: function(){
-        return this._bottomRight;
-    },
+        /**
+         * @bean
+         * @type Point
+         */
+        getTopRight: function () {
+            return (
+                this._descomposeActiveItemsInfo("topRight") || new Point(0, 0)
+            );
+        },
 
-    /**
-     * @bean
-     * @type Point
-     */
-    getBottomCenter: function(){
-        return this._bottomCenter;
-    },
+        /**
+         * @bean
+         * @type Point
+         */
+        getRightCenter: function () {
+            return (
+                this._descomposeActiveItemsInfo("rightCenter") ||
+                new Point(0, 0)
+            );
+        },
 
-    /**
-     * @bean
-     * @type Point
-     */
-    getBottomLeft: function(){
-        return this._bottomLeft;
-    },
+        /**
+         * @bean
+         * @type Point
+         */
+        getBottomRight: function () {
+            return (
+                this._descomposeActiveItemsInfo("bottomRight") ||
+                new Point(0, 0)
+            );
+        },
 
-    /**
-     * @bean
-     * @type Point
-     */
-    getLeftCenter: function(){
-        return this._leftCenter;
-    },
+        /**
+         * @bean
+         * @type Point
+         */
+        getBottomCenter: function () {
+            return (
+                this._descomposeActiveItemsInfo("bottomCenter") ||
+                new Point(0, 0)
+            );
+        },
 
-    _getActiveItemsInfo: function() {
-        var items = this._project._activeItems;
-        if(items.length){
-            var info = items[0].activeInfo;
+        /**
+         * @bean
+         * @type Point
+         */
+        getBottomLeft: function () {
+            return (
+                this._descomposeActiveItemsInfo("bottomLeft") || new Point(0, 0)
+            );
+        },
+
+        /**
+         * @bean
+         * @type Point
+         */
+        getLeftCenter: function () {
+            return (
+                this._descomposeActiveItemsInfo("leftCenter") || new Point(0, 0)
+            );
+        },
+
+        _descomposeActiveItemsInfo: function (name, sub) {
+            if (this._getActiveItemsInfo()) {
+                if (sub) {
+                    return this._getActiveItemsInfo()[name][sub];
+                }
+
+                return this._getActiveItemsInfo()[name];
+            }
+
+            return null;
+        },
+
+        _getActiveItemsInfo: function () {
+            if (this._activeItemsInfo) return this._activeItemsInfo;
+
+            var items = this._project._activeItems;
+            if (items.length) {
+                var info = items[0].activeInfo;
+
+                if (items.length > 1) {
+                    var cornerIntems = this._getCornerItems();
+
+                    var rect = cornerIntems.left.bounds;
+                    for (var x in cornerIntems) {
+                        rect = rect.unite(cornerIntems[x].bounds);
+                    }
+
+                    info = {
+                        angle: 0,
+                        width: rect.width,
+                        height: rect.height,
+                        center: rect.center,
+                        topCenter: rect.topCenter,
+                        rightCenter: rect.rightCenter,
+                        bottomCenter: rect.bottomCenter,
+                        leftCenter: rect.leftCenter,
+                        topLeft: rect.topLeft,
+                        topRight: rect.topRight,
+                        bottomRight: rect.bottomRight,
+                        bottomLeft: rect.bottomLeft,
+                    };
+                }
+
+                return (this._activeItemsInfo = info);
+            }
+            return (this._activeItemsInfo = null);
+        },
+
+        _getCornerItems: function () {
+            if (this._cornerItems.left) return this._cornerItems;
+            var items = this._project._activeItems;
+            var left = this._cornerItems.left;
+            var right = this._cornerItems.right;
+            var top = this._cornerItems.top;
+            var bottom = this._cornerItems.bottom;
+
+            for (var x in items) {
+                var bounds = items[x].bounds;
+                if (!left || (left && left.bounds.left < bounds.left)) {
+                    left = items[x];
+                }
+                if (!right || (right && right.bounds.right > bounds.right)) {
+                    right = items[x];
+                }
+                if (!top || (top && top.bounds.top < bounds.top)) {
+                    top = items[x];
+                }
+                if (
+                    !bottom ||
+                    (bottom && bottom.bounds.bottom > bounds.bottom)
+                ) {
+                    bottom = items[x];
+                }
+            }
+
+            return (this._cornerItems = {
+                left: left,
+                right: right,
+                top: top,
+                bottom: bottom,
+            });
+        },
+
+        draw: function (ctx, matrix, pixelRatio) {
+            var items = this._project._activeItems;
+            var controls = this._children;
+
+            matrix = matrix.appended(this.getGlobalMatrix(true));
+
+            ctx.lineWidth = 0.3;
+            ctx.strokeStyle = this.strokeColor.toCanvasStyle(ctx, matrix);
+
+            for (var x in items) {
+                items[x]._drawActivation(ctx, matrix, items.length > 1);
+            }
+
+            var bounds = matrix._transformBounds(this);
 
             if (items.length > 1) {
-                var rect = items[0].bounds;
-                for (var x in items) {
-                    rect = rect.unite(items[x].bounds);
-                }
-                info = {
-                    angle: 0,
-                    width: rect.width,
-                    height: rect.height,
-                    center: rect.center,
-                    topCenter: rect.topCenter,
-                    rightCenter: rect.rightCenter,
-                    bottomCenter: rect.bottomCenter,
-                    leftCenter: rect.leftCenter,
-                    topLeft: rect.topLeft,
-                    topRight: rect.topRight,
-                    bottomRight: rect.bottomRight,
-                    bottomLeft: rect.bottomLeft,
-                };
+                ctx.beginPath();
+                ctx.moveTo(bounds.topLeft.x, bounds.topLeft.y);
+                ctx.lineTo(bounds.topRight.x, bounds.topRight.y);
+                ctx.lineTo(bounds.bottomRight.x, bounds.bottomRight.y);
+                ctx.lineTo(bounds.bottomLeft.x, bounds.bottomLeft.y);
+                ctx.closePath();
+
+                ctx.stroke();
             }
-    
-            return info;
-        }
-        return null;
-    },
-    
-    draw: function(ctx, matrix, pixelRatio){
-        var items = this._project._activeItems;
-        var controls = this._children;
 
-        matrix = matrix.appended(this.getGlobalMatrix(true));
+            matrix.applyToContext(ctx);
 
-        ctx.lineWidth = 0.3;
-        ctx.strokeStyle = this.strokeColor.toCanvasStyle(ctx, matrix);
+            var param = new Base({
+                offset: new Point(0, 0),
+                pixelRatio: pixelRatio,
+                viewMatrix: matrix.isIdentity() ? null : matrix,
+                matrices: [new Matrix()],
+                updateMatrix: true,
+            });
 
-        for (var x in items) {
-            items[x]._drawActivation(ctx, matrix, items.length > 1);
-        }
-
-        var bounds = matrix._transformBounds(this);
-
-        if(items.length > 1){
-            ctx.beginPath();
-            ctx.moveTo(bounds.topLeft.x, bounds.topLeft.y);
-            ctx.lineTo(bounds.topRight.x, bounds.topRight.y);
-            ctx.lineTo(bounds.bottomRight.x, bounds.bottomRight.y);
-            ctx.lineTo(bounds.bottomLeft.x, bounds.bottomLeft.y);
-            ctx.closePath();
+            for (var x = 0; x < controls.length; x++) {
+                this._children[x].draw(ctx, param);
+            }
             
-            ctx.stroke();
-        }
-
-        matrix.applyToContext(ctx);
-
-        var param = new Base({
-            offset: new Point(0, 0),
-            pixelRatio: pixelRatio,
-            viewMatrix: matrix.isIdentity() ? null : matrix,
-            matrices: [new Matrix()],
-            updateMatrix: true,
-        });
-
-        for (var x = 0; x < controls.length; x++) {
-            // new Matrix().scale(0.95).applyToContext(ctx);
-            this._children[x].draw(ctx, param);
-        }
-        
-    }
-}, {
-    statics: {
-        create: function(project) {
-            return new Controls(project);
-        }
+        },
     },
-});
+    {
+        statics: {
+            create: function (project) {
+                return new Controls(project);
+            },
+        },
+    }
+);

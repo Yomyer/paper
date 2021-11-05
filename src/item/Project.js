@@ -103,8 +103,9 @@ var Project = PaperScopeItem.extend(
                     // Never draw changes right away. Simply mark view as "dirty"
                     // and request an update through view.requestUpdate().
                     view._needsUpdate = true;
-                    if (!view._requested && view._autoUpdate)
+                    if (!view._requested && view._autoUpdate) {
                         view.requestUpdate();
+                    }
                 }
             }
 
@@ -125,7 +126,7 @@ var Project = PaperScopeItem.extend(
                 }
             }
 
-            if(this._controls){
+            if (this._controls) {
                 this._controls._changed(flags, item);
             }
         },
@@ -239,7 +240,7 @@ var Project = PaperScopeItem.extend(
          * @bean
          * @type Layer[]
          */
-         getLayers: function () {
+        getLayers: function () {
             return this._children;
         },
 
@@ -345,6 +346,7 @@ var Project = PaperScopeItem.extend(
 
         setActiveItems: function (items) {
             this._activeItems = items;
+            this._changed(/*#=*/ ChangeFlag.ACTIVE);
         },
 
         /**
@@ -882,17 +884,26 @@ var Project = PaperScopeItem.extend(
 
             return items[0].item;
         },
-        
+
         /**
          * Deactive all items
          *
          */
         deactivateAll: function () {
-            this._activeItems.slice().forEach(function (item) {
-                return (item.actived = false);
-            });
+            var activeItems = this._activeItems;
+            for (var i in activeItems) activeItems[i].actived = false;
 
             this._activeItems = [];
+        },
+
+        /**
+         * active all items of project
+         *
+         */
+        activeAll: function () {
+            var children = this._activeLayer._children;
+            for (var i = 0, l = children.length; i < l; i++)
+                children[i].actived = true;
         },
 
         /**
@@ -1070,12 +1081,23 @@ var Project = PaperScopeItem.extend(
                 ctx.restore();
             }
 
+            // Grids
+            ctx.save();
+            matrix.applyToContext(ctx);
+            ctx.lineWidth = 0.5 * (1 / this._view.getZoom());
+            ctx.beginPath();
+            ctx.moveTo(30, 0);
+            ctx.lineTo(30, 150);
+            ctx.moveTo(31, 0);
+            ctx.lineTo(31, 150);
+            ctx.stroke();
+            ctx.restore();
+
             if (this._activeItems.length && this._controls) {
                 ctx.save();
-                this._controls.draw(ctx, matrix, pixelRatio)
+                this._controls.draw(ctx, matrix, pixelRatio);
                 ctx.restore();
             }
         },
-
     }
 );
