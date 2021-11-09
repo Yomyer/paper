@@ -10,12 +10,8 @@ var Grid = Base.extend(
         _size: null,
         _opacity: null,
         _parent: null,
+        _actived: false,
 
-        /**
-         * Creates a Grid object.
-         *
-         * @name Grid#initialize
-         */
         /**
          * Creates a Grid object.
          *
@@ -27,8 +23,7 @@ var Grid = Base.extend(
          * var rectangle = new Grid({
          *     color: 'red',
          *     size: 60,
-         *     opacity: 0.5,
-         *     parent: item
+         *     opacity: 0.5
          * });
          *
          */
@@ -36,29 +31,36 @@ var Grid = Base.extend(
          * Creates a Grid object.
          *
          * @name Grid#initialize
-         * @param {Artboard|Project} parent
-         * @param {Color} color
-         * @param {Size} Size
-         * @param {Number} [opacity]
+         * @param {Color | string} [color]
+         * @param {Size | number | Array<Number>} [size]
+         * @param {number} [opacity]
          */
         initialize: function Grid(arg0, arg1, arg2, arg3) {
             var type = typeof arg0;
-
-            if (arg0 instanceof Artboard || arg0 instanceof Project) {
+            if (type === "string" || arg0 instanceof Color) {
                 this._set(arg0, arg1, arg2, arg3);
             } else if (type === "undefined" || arg0 === null) {
                 this._set(paper.project);
             } else {
-                this._set(arg0);
+                this._set(arg0.color, arg0.size, arg0.opacity, arg0.actived);
             }
         },
 
-        _set: function (parent, color, size, opacity) {
-            this.parent = parent;
+        _set: function (color, size, opacity, actived) {
             this.color = color;
             this.size = size;
             this.opacity = opacity;
+            this.actived = actived;
             return this;
+        },
+
+        _serialize: function (options) {
+            return {
+                color: this.color._serialize(),
+                size: this.size._serialize(options),
+                opacity: this.opacity,
+                actived: this.actived
+            };
         },
 
         /**
@@ -112,6 +114,18 @@ var Grid = Base.extend(
 
         /**
          * @bean
+         * @type Artboard | Project
+         */
+        getActived: function () {
+            return this._actived;
+        },
+
+        setActived: function (actived) {
+            this._actived = actived;
+        },
+
+        /**
+         * @bean
          * @type Project
          */
         getProject: function () {
@@ -127,38 +141,54 @@ var Grid = Base.extend(
         },
 
         getBounds: function () {
-            return this.getView().bounds;
+            return this.isView()
+                ? this.getView().bounds
+                : this.getParent().bounds;
         },
 
-        isView() {
+        isView: function () {
             return this.getParent() instanceof Project;
         },
 
-        _drawHorizontal(ctx) {
+        _drawHorizontal: function (ctx) {
             var bounds = this.getBounds(),
-                size = bounds.size.round(),
-                point = bounds.point.round(),
-                offset = this.getSize().width;
+                size = bounds.size,
+                point = bounds.point,
+                delta = this.getSize().width,
+                offset = this.isView() ? delta : 0;
 
-            for (var x = point.x - point.x % offset; x <= size.width + point.x; x = x + offset) {
+            for (
+                var x = point.x - (point.x % offset || 0);
+                x <= size.width + point.x;
+                x = x + delta
+            ) {
                 ctx.moveTo(x, point.y - offset);
                 ctx.lineTo(x, point.y + size.height + offset);
             }
         },
 
-        _drawVertical(ctx) {
+        _drawVertical: function (ctx) {
             var bounds = this.getBounds(),
-                size = bounds.size.round(),
-                point = bounds.point.round();
-            offset = this.getSize().height;
+                size = bounds.size,
+                point = bounds.point;
+            (delta = this.getSize().height),
+                (offset = this.isView() ? delta : 0);
 
-            for (var y = point.y - point.y % offset; y <= size.height + point.y; y = y + offset) {
+            for (
+                var y = point.y - (point.y % offset || 0);
+                y <= size.height + point.y;
+                y = y + delta
+            ) {
                 ctx.moveTo(point.x - offset, y);
                 ctx.lineTo(point.x + size.width + offset, y);
             }
         },
 
         draw: function (ctx, matrix, pixelRatio) {
+            if(!this.actived){
+                return;
+            }
+            
             var project = this.getProject(),
                 view = this.getView(),
                 zoom = view.getZoom();
@@ -176,18 +206,19 @@ var Grid = Base.extend(
             ctx.stroke();
         },
     },
-    new function () {
+    new (function () {
         item = {
             beans: true,
             _grid: null,
             getGrid: function () {
                 return this._grid;
             },
-            setGrid: function (grid) {
-                this._grid = grid;
+            setGrid: function (/* grid */) {
+                this._grid = Grid.read(arguments);
+                this._grid._parent = this;
             },
         };
-        Artboard.inject(item);
+        Item.inject(item);
         Project.inject(item);
-    }
+    })()
 );

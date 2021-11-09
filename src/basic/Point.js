@@ -402,7 +402,18 @@ var Point = Base.extend(/** @lends Point# */{
      */
     getQuadrant: function() {
         return this.x >= 0 ? this.y >= 0 ? 1 : 4 : this.y >= 0 ? 2 : 3;
+    },
+
+    /**
+     * The corner of the {@link #angle} of the point.
+     * 
+     * @bean
+     * @type Number
+     */
+    getCorner: function(){
+        return Math.round(((this.angle + 360) % 360) / 45);
     }
+
 }, /** @lends Point# */{
     // Explicitly deactivate the creation of beans, as we have functions here
     // that look like bean getters but actually read arguments.

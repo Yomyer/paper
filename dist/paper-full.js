@@ -9,7 +9,7 @@
  *
  * All rights reserved.
  *
- * Date: Fri Nov 5 16:57:03 2021 +0100
+ * Date: Fri Nov 5 18:34:15 2021 +0100
  *
  ***
  *
@@ -1057,18 +1057,6 @@ var PaperScope = Base.extend({
 			_scopes: {},
 			_id: 0,
 
-			OpostieCornersName: {
-				topLeft: 'bottomRight',
-				topCenter: 'bottomCenter',
-				topRight: 'bottomLeft',
-				leftCenter: 'rightCenter',
-				rightCenter: 'leftCenter',
-				bottomLeft: 'topRight',
-				bottomCenter: 'topCenter',
-				bottomRight: 'topLeft',
-				center: 'center'
-			},
-
 			get: function(id) {
 				return this._scopes[id] || null;
 			},
@@ -1590,178 +1578,6 @@ var UID = Base.extend(
 	}
 );
 
-var Selector = Base.extend(
-	 {
-		statics:  {
-			_cache: {},
-			_cacheBounds: {},
-			_generateSelector: function(owner) {
-				if (Selector._isCached(owner)) {
-					return Selector._cache[owner.uid];
-				}
-				return (Selector._cache[owner.uid] = new Selector(owner));
-			},
-			_isCached: function(owner) {
-				var cache = {
-						area: owner.bounds.area,
-						centerX: owner.bounds.centerX,
-						centerY: owner.bounds.centerY,
-						topLeft: owner.bounds.topLeft,
-						id: owner._id
-					},
-					uid = owner._uid;
-				if (
-					Selector._cacheBounds[uid] &&
-					Base.equals(cache, Selector._cacheBounds[uid])
-				) {
-					return true;
-				}
-
-				Selector._cacheBounds[uid] = cache;
-			},
-			clear: function(owner){
-				delete Selector._cacheBounds[owner._uid];
-			},
-			rotatePoint: function (point, center, angle) {
-				var radians = (angle * Math.PI) / 180,
-					diff = point.subtract(center);
-				var distance = Math.sqrt(diff.x * diff.x + diff.y * diff.y);
-
-				radians += Math.atan2(diff.y, diff.x);
-
-				return new Point(
-					center.x + distance * Math.cos(radians),
-					center.y + distance * Math.sin(radians)
-				);
-			},
-		},
-		_class: "Selector",
-		_pathData: null,
-		_angle: 0,
-		_points: null,
-		_bounds: null,
-		_position: null,
-		_size: null,
-		_item: null,
-		_segments: [],
-
-		_owner: null,
-
-		initialize: function Selector(owner) {
-			this._owner = owner;
-
-			var item = owner;
-
-			if (item._class === 'Group' && item.children.length === 1) {
-				item = item.firstChild;
-			}
-
-			var angle = item.angle;
-
-			item.set({ rotation: -angle });
-
-			var rectangle = new Rectangle(item.bounds),
-				path = new Path.Rectangle({
-					rectangle: rectangle,
-				});
-
-			var center = path.bounds.center;
-
-			this._points = {
-				center: new Point(center),
-				topLeft: Selector.rotatePoint(
-					path.bounds.topLeft,
-					center,
-					angle
-				),
-				topCenter: Selector.rotatePoint(
-					path.bounds.topLeft.add(
-						new Point(path.bounds.width / 2, 0)
-					),
-					center,
-					angle
-				),
-				topRight: Selector.rotatePoint(
-					path.bounds.topRight,
-					center,
-					angle
-				),
-				leftCenter: Selector.rotatePoint(
-					path.bounds.topLeft.add(
-						new Point(0, path.bounds.height / 2)
-					),
-					center,
-					angle
-				),
-				rightCenter: Selector.rotatePoint(
-					path.bounds.topRight.add(
-						new Point(0, path.bounds.height / 2)
-					),
-					center,
-					angle
-				),
-				bottomLeft: Selector.rotatePoint(
-					path.bounds.bottomLeft,
-					center,
-					angle
-				),
-				bottomCenter: Selector.rotatePoint(
-					path.bounds.bottomLeft.add(
-						new Point(path.bounds.width / 2, 0)
-					),
-					center,
-					angle
-				),
-				bottomRight: Selector.rotatePoint(
-					path.bounds.bottomRight,
-					center,
-					angle
-				),
-			};
-
-			path.set({ rotation: angle, visible: false });
-			item.set({ rotation: angle });
-
-			this._angle = angle;
-			this._pathData = path.pathData;
-			this._position = path.position;
-			this._item = item;
-			this._segments = path.segments;
-			this._bounds = path.bounds;
-			this._size = new Size(rectangle.width, rectangle.height);
-
-			path.remove();
-		},
-	},
-	Base.each(
-		[
-			"pathData",
-			"angle",
-			"points",
-			"bounds",
-			"position",
-			"size",
-			"item",
-			"segments",
-		],
-		function (name) {
-			var part = Base.capitalize(name),
-				key = "_" + name;
-
-			this["get" + part] = function () {
-				return this[key];
-			};
-
-			this["set" + part] = function (value) {
-				if (value != this[key]) {
-					this[key] = value;
-				}
-			};
-		},
-		{}
-	)
-);
-
 var Point = Base.extend({
 	_class: 'Point',
 	_readIndex: true,
@@ -1893,7 +1709,12 @@ var Point = Base.extend({
 
 	getQuadrant: function() {
 		return this.x >= 0 ? this.y >= 0 ? 1 : 4 : this.y >= 0 ? 2 : 3;
+	},
+
+	getCorner: function(){
+		return Math.round(((this.angle + 360) % 360) / 45);
 	}
+
 }, {
 	beans: false,
 
@@ -3268,7 +3089,6 @@ var Project = PaperScopeItem.extend(
 		_insertMode: false,
 		_activeItems: [],
 		_mainTool: null,
-		_itemSelector: null,
 		_artboards: [],
 		_controls: null,
 
@@ -3395,14 +3215,6 @@ var Project = PaperScopeItem.extend(
 
 		setInsertMode: function (mode) {
 			this._insertMode = mode;
-		},
-
-		getItemSelector: function () {
-			return this._itemSelector;
-		},
-
-		setItemSelector: function (item) {
-			this._itemSelector = item;
 		},
 
 		getActiveItems: function () {
@@ -3678,10 +3490,10 @@ var Item = Base.extend(Emitter, {
 	_clipMask: false,
 	_selection: 0,
 	_selectionCache: null,
-	_selector: null,
 	_getItemsInChildrens: false,
 	_selectBounds: true,
 	_selectChildren: false,
+	_serializeStyle: true,
 	_serializeFields: {
 		name: null,
 		applyMatrix: null,
@@ -3786,7 +3598,7 @@ new function() {
 		}
 
 		serialize(this._serializeFields);
-		if (!(this instanceof Group))
+		if (this._serializeStyle)
 			serialize(this._style._defaults);
 		return [ this._class, props ];
 	},
@@ -3866,14 +3678,6 @@ new function() {
 
 	setAngle: function(angle){
 		this._angle = angle;
-	},
-
-	getSelector: function(){
-		return Selector._generateSelector(this);
-	},
-
-	setSelector: function(selector){
-		this._selector = selector;
 	},
 
 	getBlocked: function(){
@@ -4611,7 +4415,7 @@ new function() {
 		return this._activeInfo = Base.set(corners, {
 			angle: this.angle,
 			width: corners.topLeft.subtract(corners.topRight).length,
-			hegiht: corners.topLeft.subtract(corners.bottomLeft).length,
+			height: corners.topLeft.subtract(corners.bottomLeft).length,
 			center: corners.topLeft.add(corners.bottomRight).divide(2),
 			topCenter: corners.topLeft.add(corners.topRight).divide(2),
 			rightCenter: corners.topRight
@@ -5042,8 +4846,6 @@ new function() {
 			index = this._index;
 		if (this._style)
 			this._style._dispose();
-
-		Selector.clear(this);
 		if (owner) {
 			if (this._name)
 				this._removeNamed();
@@ -5446,6 +5248,10 @@ new function() {
 				ctx.translate(-offset.x, -offset.y);
 		}
 		this._draw(ctx, param, viewMatrix, strokeMatrix);
+		if(this._grid){
+			this._grid.draw(ctx, matrix, pixelRatio);
+		}
+
 		ctx.restore();
 		matrices.pop();
 		if (param.clip && !param.dontFinish) {
@@ -5593,6 +5399,7 @@ var Group = Item.extend({
 	_class: 'Group',
 	_selectBounds: false,
 	_selectChildren: true,
+	_serializeStyle: false,
 	_serializeFields: {
 		children: []
 	},
@@ -5702,9 +5509,11 @@ var Artboard = Group.extend(
 		_selectChildren: false,
 		_drawing: false,
 		_getItemsInChildrens: true,
+		_serializeStyle: true,
 		_serializeFields: {
 			size: null,
-			poin: null,
+			point: null,
+			grid: null,
 			children: []
 		},
 
@@ -5720,8 +5529,9 @@ var Artboard = Group.extend(
 				args[0].point = rect.getPoint(true);
 			}
 
-			if (!this._initialize(args[0]))
+			if (!this._initialize(args[0])){
 				this.addChildren(Array.isArray(args) ? args : arguments);
+			}
 
 			if (!this._size) {
 				this.setSize(1000);
@@ -5880,7 +5690,7 @@ var Artboard = Group.extend(
 			}
 
 			if (options.legacy || this._actived || !this._children.length) {
-				if (this.bounds.contains(viewMatrix._transformPoint(point))) {
+				if (this.bounds.contains(point)) {
 					var hit = new HitResult("fill", this);
 					var match = options.match;
 
@@ -6959,8 +6769,8 @@ var ControlItem = Item.extend(
 			this._offset = Point.read(arguments);
 		},
 
-		getPosition: function (_dontLink) {
-			return this._item.getPosition(_dontLink);
+		getPosition: function () {
+			return this._item.getPosition();
 		},
 
 		setPosition: function () {
@@ -7009,7 +6819,7 @@ var ControlItem = Item.extend(
 			}
 
 			this._item.transform(
-				new Matrix().scale(1 / zoom, this.getPosition(true)),
+				new Matrix().scale(1 / zoom, this.getPosition()),
 				false,
 				false,
 				true
@@ -7029,7 +6839,7 @@ var ControlItem = Item.extend(
 			}
 
 			this._item.transform(
-				new Matrix().scale(zoom, this.getPosition(true)),
+				new Matrix().scale(zoom, this.getPosition()),
 				false,
 				false,
 				true
@@ -7038,9 +6848,12 @@ var ControlItem = Item.extend(
 			return hit;
 		},
 
-		isSmallZoom: function(){
-			if (this._project._controls.width * this._project._view.getZoom() < 15) {
-				return true
+		isSmallZoom: function () {
+			if (
+				this._project._controls.width * this._project._view.getZoom() <
+				10
+			) {
+				return true;
 			}
 		},
 
@@ -7082,25 +6895,37 @@ var ControlItem = Item.extend(
 			}
 
 			var controls = this._project.controls;
+			var zoom = this._project._view.getZoom();
+			var shadowOffset = null;
 
 			this.setRotation(controls.angle);
 			this.setPosition(controls[this.corner]);
 
-			var zoom = this._project._view.getZoom();
-
 			this._item.transform(
-				new Matrix().scale(1 / zoom, this.getPosition(true)),
+				new Matrix().scale(1 / zoom, this.getPosition()),
 				false,
 				false,
 				true
 			);
+
+			if (this._item.shadowOffset) {
+				shadowOffset = this._item.shadowOffset.clone();
+				this._item.shadowOffset = new Matrix()
+					.rotate(-this.item.getRotation())
+					._transformPoint(shadowOffset);
+			}
+
 			this._item.draw(ctx, param);
 			this._item.transform(
-				new Matrix().scale(zoom, this.getPosition(true)),
+				new Matrix().scale(zoom, this.getPosition()),
 				false,
 				false,
 				true
 			);
+
+			if (shadowOffset) {
+				this._item.shadowOffset = shadowOffset;
+			}
 		},
 	}
 );
@@ -7135,6 +6960,18 @@ var Controls = Item.extend(
 		_children: [],
 		_cornerItems: {},
 		_activeItemsInfo: null,
+
+		_oposite: {
+			topLeft: "bottomRight",
+			topCenter: "bottomCenter",
+			topRight: "bottomLeft",
+			leftCenter: "rightCenter",
+			rightCenter: "leftCenter",
+			bottomLeft: "topRight",
+			bottomCenter: "topCenter",
+			bottomRight: "topLeft",
+			center: "center",
+		},
 
 		initialize: function Controls(arg) {
 			var that = this;
@@ -7265,6 +7102,14 @@ var Controls = Item.extend(
 			return (
 				this._descomposeActiveItemsInfo("leftCenter") || new Point(0, 0)
 			);
+		},
+
+		getPosition: function () {
+			return this._descomposeActiveItemsInfo("center") || new Point(0, 0);
+		},
+
+		getOposite: function(oposite){
+			return this[this._oposite[oposite]];
 		},
 
 		_descomposeActiveItemsInfo: function (name, sub) {
@@ -15112,25 +14957,34 @@ var Grid = Base.extend(
 		_size: null,
 		_opacity: null,
 		_parent: null,
+		_actived: false,
 
 		initialize: function Grid(arg0, arg1, arg2, arg3) {
 			var type = typeof arg0;
-
-			if (arg0 instanceof Artboard || arg0 instanceof Project) {
+			if (type === "string" || arg0 instanceof Color) {
 				this._set(arg0, arg1, arg2, arg3);
 			} else if (type === "undefined" || arg0 === null) {
 				this._set(paper.project);
 			} else {
-				this._set(arg0);
+				this._set(arg0.color, arg0.size, arg0.opacity, arg0.actived);
 			}
 		},
 
-		_set: function (parent, color, size, opacity) {
-			this.parent = parent;
+		_set: function (color, size, opacity, actived) {
 			this.color = color;
 			this.size = size;
 			this.opacity = opacity;
+			this.actived = actived;
 			return this;
+		},
+
+		_serialize: function (options) {
+			return {
+				color: this.color._serialize(),
+				size: this.size._serialize(options),
+				opacity: this.opacity,
+				actived: this.actived
+			};
 		},
 
 		getColor: function () {
@@ -15166,6 +15020,14 @@ var Grid = Base.extend(
 			this._parent.grid = this;
 		},
 
+		getActived: function () {
+			return this._actived;
+		},
+
+		setActived: function (actived) {
+			this._actived = actived;
+		},
+
 		getProject: function () {
 			return this.isView() ? this._parent : this._parent._project;
 		},
@@ -15175,38 +15037,53 @@ var Grid = Base.extend(
 		},
 
 		getBounds: function () {
-			return this.getView().bounds;
+			return this.isView()
+				? this.getView().bounds
+				: this.getParent().bounds;
 		},
 
-		isView() {
+		isView: function () {
 			return this.getParent() instanceof Project;
 		},
 
-		_drawHorizontal(ctx) {
+		_drawHorizontal: function (ctx) {
 			var bounds = this.getBounds(),
-				size = bounds.size.round(),
-				point = bounds.point.round(),
-				offset = this.getSize().width;
+				size = bounds.size,
+				point = bounds.point,
+				delta = this.getSize().width,
+				offset = this.isView() ? delta : 0;
 
-			for (var x = point.x - point.x % offset; x <= size.width + point.x; x = x + offset) {
+			for (
+				var x = point.x - (point.x % offset || 0);
+				x <= size.width + point.x;
+				x = x + delta
+			) {
 				ctx.moveTo(x, point.y - offset);
 				ctx.lineTo(x, point.y + size.height + offset);
 			}
 		},
 
-		_drawVertical(ctx) {
+		_drawVertical: function (ctx) {
 			var bounds = this.getBounds(),
-				size = bounds.size.round(),
-				point = bounds.point.round();
-			offset = this.getSize().height;
+				size = bounds.size,
+				point = bounds.point;
+			(delta = this.getSize().height),
+				(offset = this.isView() ? delta : 0);
 
-			for (var y = point.y - point.y % offset; y <= size.height + point.y; y = y + offset) {
+			for (
+				var y = point.y - (point.y % offset || 0);
+				y <= size.height + point.y;
+				y = y + delta
+			) {
 				ctx.moveTo(point.x - offset, y);
 				ctx.lineTo(point.x + size.width + offset, y);
 			}
 		},
 
 		draw: function (ctx, matrix, pixelRatio) {
+			if(!this.actived){
+				return;
+			}
 			var project = this.getProject(),
 				view = this.getView(),
 				zoom = view.getZoom();
@@ -15224,20 +15101,21 @@ var Grid = Base.extend(
 			ctx.stroke();
 		},
 	},
-	new function () {
+	new (function () {
 		item = {
 			beans: true,
 			_grid: null,
 			getGrid: function () {
 				return this._grid;
 			},
-			setGrid: function (grid) {
-				this._grid = grid;
+			setGrid: function () {
+				this._grid = Grid.read(arguments);
+				this._grid._parent = this;
 			},
 		};
-		Artboard.inject(item);
+		Item.inject(item);
 		Project.inject(item);
-	}
+	})()
 );
 
 var Event = Base.extend({

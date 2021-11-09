@@ -1,6 +1,7 @@
 /**
  * @name Controls
  * @class
+ * @extends Item
  */
 var Controls = Item.extend(
     /** @lends Controls# */ {
@@ -32,6 +33,18 @@ var Controls = Item.extend(
         _children: [],
         _cornerItems: {},
         _activeItemsInfo: null,
+
+        _oposite: {
+            topLeft: "bottomRight",
+            topCenter: "bottomCenter",
+            topRight: "bottomLeft",
+            leftCenter: "rightCenter",
+            rightCenter: "leftCenter",
+            bottomLeft: "topRight",
+            bottomCenter: "topCenter",
+            bottomRight: "topLeft",
+            center: "center",
+        },
 
         initialize: function Controls(arg) {
             var that = this;
@@ -228,6 +241,26 @@ var Controls = Item.extend(
             );
         },
 
+        /**
+         * @bean
+         * @type Point
+         */
+        getPosition: function () {
+            return this._descomposeActiveItemsInfo("center") || new Point(0, 0);
+        },
+
+        /** 
+        * @name Controls#getOposite
+        * @param String
+        * @values 'center', 'topCenter', 'rightCenter', 'bottomCenter', 'leftCenter', 'topLeft', 'topRight', 'bottomRight', 'bottomLef'
+        * @function
+        * @return {Point} 
+        * 
+        */
+        getOposite: function(oposite){
+            return this[this._oposite[oposite]];
+        },
+
         _descomposeActiveItemsInfo: function (name, sub) {
             if (this._getActiveItemsInfo()) {
                 if (sub) {
@@ -350,7 +383,6 @@ var Controls = Item.extend(
             for (var x = 0; x < controls.length; x++) {
                 this._children[x].draw(ctx, param);
             }
-            
         },
     },
     {

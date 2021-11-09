@@ -9,7 +9,7 @@
  *
  * All rights reserved.
  *
- * Date: Fri Nov 5 16:57:03 2021 +0100
+ * Date: Fri Nov 5 18:34:15 2021 +0100
  *
  * This is an auto-generated type definition.
  */
@@ -456,12 +456,7 @@ declare namespace paper {
     }
 
     
-    class ControlItem  {
-
-    }
-
-    
-    class Controls  {
+    class ControlItem extends Item {
         
         item: string
 
@@ -471,6 +466,11 @@ declare namespace paper {
         
         offset: Point
 
+
+    }
+
+    
+    class Controls extends Item {
         
         readonly controls: any[]
 
@@ -516,6 +516,9 @@ declare namespace paper {
         
         readonly leftCenter: Point
 
+        
+        readonly position: Point
+
 
         /** 
          * @param item - the item to be added as a child
@@ -523,6 +526,9 @@ declare namespace paper {
          * @return the added item, or `null` if adding was not possible
          */
         addControl(item: Item, name: any): Item
+
+        
+        getOposite(String: any): Point
 
     }
 
@@ -1360,6 +1366,9 @@ declare namespace paper {
         parent: Artboard  |  Project
 
         
+        actived: Artboard  |  Project
+
+        
         readonly project: Project
 
         
@@ -1369,12 +1378,7 @@ declare namespace paper {
         /** 
          * Creates a Grid object.
          */
-        constructor()
-
-        /** 
-         * Creates a Grid object.
-         */
-        constructor(parent: Artboard | Project, color: Color, Size: Size, opacity?: number)
+        constructor(color?: Color  |  string, size?: Size  |  number  |  Array<Number>, opacity?: number)
 
         /** 
          * Creates a Grid object.
@@ -1941,9 +1945,6 @@ declare namespace paper {
          */
         onMouseLeave: Function | null
 
-
-        
-        static rotatePoint(point: Point, center: Point, angle: number): Point
 
         /** 
          * Returns the unique id.
@@ -3510,7 +3511,6 @@ declare namespace paper {
         Raster: typeof Raster
         Rectangle: typeof Rectangle
         Segment: typeof Segment
-        Selector: typeof Selector
         Shape: typeof Shape
         Size: typeof Size
         Style: typeof Style
@@ -3601,14 +3601,6 @@ declare namespace paper {
          */
         static get(id: any): PaperScope
 
-    }
-    namespace PaperScope {
-
-        class OpostieCornersName extends PaperScope {
-            
-            constructor()
-
-        }
     }
 
     
@@ -4758,6 +4750,11 @@ declare namespace paper {
         readonly quadrant: number
 
         /** 
+         * The corner of the {@link #angle} of the point.
+         */
+        readonly corner: number
+
+        /** 
          * This property is only valid if the point is an anchor or handle point
          * of a {@link Segment} or a {@link Curve}, or the position of an
          * {@link Item}, as returned by {@link Item#position},
@@ -5269,6 +5266,9 @@ declare namespace paper {
          * The selected items contained within the project.
          */
         readonly selectedItems: Item[]
+
+        
+        grid: Grid
 
 
         /** 
@@ -6347,32 +6347,6 @@ declare namespace paper {
          *     `0` and `1`, but extrapolation is possible too
          */
         interpolate(from: Segment, to: Segment, factor: number): void
-
-    }
-
-    
-    class Selector  {
-        
-        pathData: string
-
-        
-        angle: number
-
-        
-        points: {[key: string]: Point}
-
-        
-        bounds: Rectangle
-
-        
-        size: Size
-
-        
-        item: Item
-
-        
-        segments: Segment[]
-
 
     }
 
@@ -7782,7 +7756,6 @@ declare module '@yomyer/paper'
     export class Raster extends paper.Raster {}
     export class Rectangle extends paper.Rectangle {}
     export class Segment extends paper.Segment {}
-    export class Selector extends paper.Selector {}
     export class Shape extends paper.Shape {}
     export class Size extends paper.Size {}
     export class Style extends paper.Style {}

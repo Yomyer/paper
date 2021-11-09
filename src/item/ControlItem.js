@@ -1,10 +1,11 @@
 /**
  * @name ControlItem
  * @class
+ * @extends Item
  */
 
 var ControlItem = Item.extend(
-    /** @lends Controls# */ {
+    /** @lends ControlItem# */ {
         _class: "ControlItem",
         _item: null,
         _corner: null,
@@ -63,8 +64,8 @@ var ControlItem = Item.extend(
             this._offset = Point.read(arguments);
         },
 
-        getPosition: function (_dontLink) {
-            return this._item.getPosition(_dontLink);
+        getPosition: function () {
+            return this._item.getPosition();
         },
 
         setPosition: function (/* point */) {
@@ -113,7 +114,7 @@ var ControlItem = Item.extend(
             }
 
             this._item.transform(
-                new Matrix().scale(1 / zoom, this.getPosition(true)),
+                new Matrix().scale(1 / zoom, this.getPosition()),
                 false,
                 false,
                 true
@@ -133,7 +134,7 @@ var ControlItem = Item.extend(
             }
 
             this._item.transform(
-                new Matrix().scale(zoom, this.getPosition(true)),
+                new Matrix().scale(zoom, this.getPosition()),
                 false,
                 false,
                 true
@@ -142,9 +143,12 @@ var ControlItem = Item.extend(
             return hit;
         },
 
-        isSmallZoom: function(){
-            if (this._project._controls.width * this._project._view.getZoom() < 15) {
-                return true
+        isSmallZoom: function () {
+            if (
+                this._project._controls.width * this._project._view.getZoom() <
+                10
+            ) {
+                return true;
             }
         },
 
@@ -186,25 +190,37 @@ var ControlItem = Item.extend(
             }
 
             var controls = this._project.controls;
+            var zoom = this._project._view.getZoom();
+            var shadowOffset = null;
 
             this.setRotation(controls.angle);
             this.setPosition(controls[this.corner]);
 
-            var zoom = this._project._view.getZoom();
-
             this._item.transform(
-                new Matrix().scale(1 / zoom, this.getPosition(true)),
+                new Matrix().scale(1 / zoom, this.getPosition()),
                 false,
                 false,
                 true
             );
+
+            if (this._item.shadowOffset) {
+                shadowOffset = this._item.shadowOffset.clone();
+                this._item.shadowOffset = new Matrix()
+                    .rotate(-this.item.getRotation())
+                    ._transformPoint(shadowOffset);
+            }
+
             this._item.draw(ctx, param);
             this._item.transform(
-                new Matrix().scale(zoom, this.getPosition(true)),
+                new Matrix().scale(zoom, this.getPosition()),
                 false,
                 false,
                 true
             );
+
+            if (shadowOffset) {
+                this._item.shadowOffset = shadowOffset;
+            }
         },
     }
 );

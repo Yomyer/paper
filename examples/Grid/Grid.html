@@ -7,16 +7,12 @@
         <script type="text/javascript" src="../../dist/index.js"></script>
         <script type="text/paperscript" canvas="canvas">
             var empty = new Artboard({
-                from: 600,
+                from: 605,
                 to: 1000,
                 fillColor: 'blue',
-                name: 'xD',
-                // opacity: 0.5,
-                //guide: true
             });
 
-            var grid = new Grid();
-
+            empty.grid = new Grid('red', 20, 1);
         </script>
     </head>
     <body>

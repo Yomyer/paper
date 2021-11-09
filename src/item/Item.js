@@ -65,13 +65,13 @@ var Item = Base.extend(Emitter, /** @lends Item# */{
     _clipMask: false,
     _selection: 0,
     _selectionCache: null,
-    _selector: null,
     _getItemsInChildrens: false,
     // Controls whether bounds should appear selected when the item is selected.
     // This is only turned off for Group, Layer and PathItem, where it can be
     // selected separately by setting item.bounds.selected = true;
     _selectBounds: true,
     _selectChildren: false,
+    _serializeStyle: true,
     // Provide information about fields to be serialized, with their defaults
     // that can be omitted.
     _serializeFields: {
@@ -211,7 +211,7 @@ new function() { // Injection scope for various item event handlers
         // Serialize style fields, but only if they differ from defaults.
         // Do not serialize styles on Groups and Layers, since they just unify
         // their children's own styles.
-        if (!(this instanceof Group))
+        if (this._serializeStyle)
             serialize(this._style._defaults);
         // There is no compact form for Item serialization, we always keep the
         // class.
@@ -453,20 +453,6 @@ new function() { // Injection scope for various item event handlers
 
     setAngle: function(angle){
         this._angle = angle;
-    },
-
-    /**
-     * 
-     * @name Item#selector
-     * @returns Selector
-     */
-    getSelector: function(){
-        return Selector._generateSelector(this);
-        // return this._selector;
-    },
-
-    setSelector: function(selector){
-        this._selector = selector;
     },
 
     /**
@@ -2101,7 +2087,7 @@ new function() { // Injection scope for various item event handlers
         return this._activeInfo = Base.set(corners, {
             angle: this.angle,
             width: corners.topLeft.subtract(corners.topRight).length,
-            hegiht: corners.topLeft.subtract(corners.bottomLeft).length,
+            height: corners.topLeft.subtract(corners.bottomLeft).length,
             center: corners.topLeft.add(corners.bottomRight).divide(2),
             topCenter: corners.topLeft.add(corners.topRight).divide(2),
             rightCenter: corners.topRight
@@ -2717,6 +2703,11 @@ new function() { // Injection scope for hit-test functions shared with project
      */
 
     /**
+     * @name Input#grid
+     * @type Grid
+     */
+
+    /**
      * {@grouptitle Hierarchy Operations}
      *
      * Adds the specified item as a child of this item at the end of the its
@@ -3016,8 +3007,6 @@ new function() { // Injection scope for hit-test functions shared with project
             index = this._index;
         if (this._style)
             this._style._dispose();
-
-        Selector.clear(this);  
         
         if (owner) {
             // Handle named children separately from index:
@@ -4732,6 +4721,11 @@ new function() { // Injection scope for hit-test functions shared with project
                 ctx.translate(-offset.x, -offset.y);
         }
         this._draw(ctx, param, viewMatrix, strokeMatrix);
+        
+        if(this._grid){
+            this._grid.draw(ctx, matrix, pixelRatio);
+        }
+
         ctx.restore();
         matrices.pop();
         if (param.clip && !param.dontFinish) {

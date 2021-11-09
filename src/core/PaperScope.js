@@ -532,21 +532,6 @@ var PaperScope = Base.extend(/** @lends PaperScope# */{
             _id: 0,
 
             /**
-             * @static
-             */
-            OpostieCornersName: {
-                topLeft: 'bottomRight',
-                topCenter: 'bottomCenter',
-                topRight: 'bottomLeft',
-                leftCenter: 'rightCenter',
-                rightCenter: 'leftCenter',
-                bottomLeft: 'topRight',
-                bottomCenter: 'topCenter',
-                bottomRight: 'topLeft',
-                center: 'center'
-            },
-
-            /**
              * Retrieves a PaperScope object with the given scope id.
              *
              * @param id

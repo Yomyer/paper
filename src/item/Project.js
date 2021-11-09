@@ -39,7 +39,6 @@ var Project = PaperScopeItem.extend(
         _insertMode: false,
         _activeItems: [],
         _mainTool: null,
-        _itemSelector: null,
         _artboards: [],
         _controls: null,
 
@@ -319,19 +318,6 @@ var Project = PaperScopeItem.extend(
 
         setInsertMode: function (mode) {
             this._insertMode = mode;
-        },
-
-        /**
-         *
-         * @name Project#itemSelector
-         * @returns {Item}
-         */
-        getItemSelector: function () {
-            return this._itemSelector;
-        },
-
-        setItemSelector: function (item) {
-            this._itemSelector = item;
         },
 
         /**
@@ -1018,6 +1004,11 @@ var Project = PaperScopeItem.extend(
          *     required when loading from external files.
          * @return {Item} the newly created Paper.js item containing the converted
          *     SVG content
+         */
+
+        /**
+         * @name Project#grid
+         * @type Grid
          */
 
         /**

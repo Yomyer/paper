@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <title>Animated Star</title>
+        <link rel="stylesheet" href="../css/style.css" />
+        <script type="text/javascript" src="../../dist/index.js"></script>
+        <script type="text/paperscript" canvas="canvas">
+            var empty = new Artboard({
+                from: 600,
+                to: 1000,
+                fillColor: 'blue',
+                name: 'xD',
+                // opacity: 0.5,
+                //guide: true
+            });
+
+            var rect = new Path.Rectangle({
+                from: 0,
+                to: 10,
+                fillColor: 'red',
+                rotation: 20,
+                actived: true
+            });
+
+            var rect = new Path.Rectangle({
+                from: [700, 100],
+                to: [1000, 300],
+                fillColor: 'red',
+                rotation: 20,
+                actived: true
+            });
+
+            var oval = new Path.Oval({
+                from: [700, 400],
+                to: [1000, 500],
+                fillColor: 'orange',
+                rotation: -20,
+                actived: true
+            });
+
+            
+            var single = new Path.Rectangle({
+                from: [100, 100],
+                to: [400, 300],
+                fillColor: 'green',
+            });
+
+            var group = new Group(new Path.Rectangle({
+                from: 200,
+                to: 600,
+                fillColor: 'yellow'
+            }),new Path.Rectangle({
+                from: 300,
+                to: 650,
+                fillColor: 'magenta',
+            }));
+
+            var noEmpty = new Artboard({
+                from: 50,
+                to: 500,
+                fillColor: 'blue',
+                name: 'xD',
+                children: [single, group]
+            });
+
+            project.controls.onMouseEnter = function(item){
+                console.log(item);
+            };
+
+            project.controls.on('click', function(item){
+                console.log(item);
+            });
+
+            
+
+            var control = new ControlItem('center', 0, 
+                new Shape.Ellipse({
+                    size: 100,
+                    fillColor: 'green'
+                })
+            );
+            control.setOffset([10, 0])
+            control.on('click', function(item) {
+                console.log('xDDDD')
+            });
+
+            project.controls.addControl(control, 'test');
+
+            project.view.translate(100)
+
+            // var g = new Group(artboard);
+
+            /*
+            var path = new Path.Rectangle({
+                from: 150,
+                to: 500,
+                fillColor: 'yellow',
+                actived: true
+            });
+*/
+   
+
+            //noEmpty.scale(1.5)
+
+            function getPathByPoint(point, legacy){
+                var options = options | {};
+
+                var args = {
+                    class: Item,
+                    segments: true,
+                    stroke: true,
+                    curves: true,
+                    fill: true,
+                    guides: false,
+                    controls: false,
+                    tolerance: 8 / project.view.zoom,
+                    legacy: legacy,
+                    match: function(hit){
+                        return (
+                            !hit.item.hasFill() &&
+                            !hit.item.blocked &&
+                            (options.filter ? options.filter(hit.item) : true)
+                        );
+                    }
+                };
+
+                var items = project.hitTestAll(point, Base.set(args, options)).concat(
+                    project.hitTestAll(point, 
+                        Base.set(args, {
+                            tolerance: 0,
+                            match: function(hit) {
+                                return !hit.item.blocked &&
+                                (options.filter ? options.filter(hit.item) : true);
+                            }
+                        }, options)
+                    )
+                );
+
+                if (!items.length) return null;
+               
+               return items[0].item;
+            }
+
+            function onMouseDown(event) {
+                if(!(event.item instanceof ControlItem)){
+                    project.deactivateAll();
+                    var point = event.point;
+
+                    path = getPathByPoint(point, event.modifiers.meta)
+
+                    if(path){
+                        path.actived = true;
+                    }
+                }
+            }
+
+            /*
+            function onMouseDown(event) {
+                var hit = project.hitTestAll(event.point);
+                path = hit.length && hit[0].item || null;
+                console.log(hit);
+            }
+            */
+
+            function onMouseMove(event) {
+                project.deselectAll()
+                
+                var item = getPathByPoint(event.point, event.modifiers.meta);
+                
+
+                if (item){
+                    item.selected = true;
+                }
+                    
+            }
+
+            function onMouseDrag(event) {
+                if(path){
+                    path.translate(event.delta)
+                    // path.position += event.delta;
+                }
+                // console.log('Children', g.bounds)
+                // console.log('Artboard', artboard.bounds)
+            }
+        </script>
+    </head>
+    <body>
+        <canvas id="canvas" resize></canvas>
+    </body>
+</html>

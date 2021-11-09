@@ -26,15 +26,15 @@ var Artboard = Group.extend(
     /** @lends Artboard# */ {
         _class: "Artboard",
         _applyChildrenStyle: false,
-        //_applyMatrix: false,
-        //_canApplyMatrix: false,
         _selectBounds: true,
         _selectChildren: false,
         _drawing: false,
         _getItemsInChildrens: true,
+        _serializeStyle: true,
         _serializeFields: {
             size: null,
-            poin: null,
+            point: null,
+            grid: null,
             children: []
         },
 
@@ -50,8 +50,9 @@ var Artboard = Group.extend(
                 args[0].point = rect.getPoint(true);
             }            
 
-            if (!this._initialize(args[0]))
+            if (!this._initialize(args[0])){
                 this.addChildren(Array.isArray(args) ? args : arguments);
+            }
 
             if (!this._size) {
                 this.setSize(1000);
@@ -254,7 +255,7 @@ var Artboard = Group.extend(
             }
 
             if (options.legacy || this._actived || !this._children.length) {
-                if (this.bounds.contains(viewMatrix._transformPoint(point))) {
+                if (this.bounds.contains(point)) {
                     var hit = new HitResult("fill", this);
                     var match = options.match;
 

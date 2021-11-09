@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Circle Testing</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script type="text/javascript" src="../../dist/index.js"></script>
+    <script type="text/paperscript" canvas="canvas1">
+        var artboard = new Artboard({
+            from: 105,
+            to: 500,
+            fillColor: 'blue',
+            children: [new Shape.Rectangle({
+                from: 200,
+                to: 800,
+                fillColor: 'yellow'
+            })]
+        });
+
+        artboard.grid = new Grid('red', 20, 1);
+            
+        window._json = project.exportJSON();
+        console.log(window._json);
+    </script>
+    <script type="text/paperscript" canvas="canvas2">
+        project.importJSON(window._json);
+    </script>
+</head>
+<body>
+    <canvas id="canvas1" width="500" height="800"></canvas>
+    <canvas id="canvas2" width="500" height="800"></canvas>
+</body>
+</html>
