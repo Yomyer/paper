@@ -602,6 +602,15 @@ var Matrix = Base.extend(/** @lends Matrix# */{
                 _dontNotify);
     },
 
+    /**
+     * @param {Point} point 
+     * @param {Point} [dest] 
+     * @returns {Point}
+     */
+    transformPoint: function(point, dest){
+        return this._transformPoint(point, dest);
+    },
+
     _transformCoordinates: function(src, dst, count) {
         for (var i = 0, max = 2 * count; i < max; i += 2) {
             var x = src[i],
@@ -610,6 +619,16 @@ var Matrix = Base.extend(/** @lends Matrix# */{
             dst[i + 1] = x * this._b + y * this._d + this._ty;
         }
         return dst;
+    },
+
+    /**
+     * @param {Array<number>} src 
+     * @param {Array<number>} [dst] 
+     * @param {number} [count] 
+     * @returns {Array<number>} 
+     */
+    transformCoordinates: function(src, dst, count){
+        return this._transformCoordinates(src, dst, count);
     },
 
     _transformCorners: function(rect) {
@@ -621,6 +640,14 @@ var Matrix = Base.extend(/** @lends Matrix# */{
         return this._transformCoordinates(coords, coords, 4);
     },
 
+    /**
+     * @param {Rectangle} rect 
+     * @returns {Array<number>} 
+     */
+    transformCorners: function(rect){
+        return this._transformCorners(rect);
+    },
+    
     /**
      * Returns the 'transformed' bounds rectangle by transforming each corner
      * point and finding the new bounding box to these points. This is not
@@ -643,6 +670,15 @@ var Matrix = Base.extend(/** @lends Matrix# */{
             dest = new Rectangle();
         return dest._set(min[0], min[1], max[0] - min[0], max[1] - min[1],
                 _dontNotify);
+    },
+
+    /**
+     * @param {Rectangle} bounds 
+     * @param {Rectangle} dest 
+     * @returns {Rectangle} 
+     */
+    transformBounds: function(bounds, dest){
+        return this._transformBounds(bounds, dest);
     },
 
     /**

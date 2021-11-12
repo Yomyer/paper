@@ -1072,7 +1072,7 @@ var Project = PaperScopeItem.extend(
                 ctx.restore();
             }
 
-            if(this._grid){
+            if (this._grid) {
                 ctx.save();
                 matrix.applyToContext(ctx);
                 this._grid.draw(ctx, matrix, pixelRatio);
@@ -1084,6 +1084,8 @@ var Project = PaperScopeItem.extend(
                 this._controls.draw(ctx, matrix, pixelRatio);
                 ctx.restore();
             }
+
+            this._controls.drawInfo(ctx, matrix, pixelRatio);
         },
     }
 );

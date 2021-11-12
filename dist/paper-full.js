@@ -1,5 +1,5 @@
 /*!
- * Paper.js v0.12.15-grids - The Swiss Army Knife of Vector Graphics Scripting.
+ * Paper.js v0.12.15-info - The Swiss Army Knife of Vector Graphics Scripting.
  * http://paperjs.org/
  *
  * Copyright (c) 2011 - 2020, Jürg Lehni & Jonathan Puckey
@@ -9,7 +9,7 @@
  *
  * All rights reserved.
  *
- * Date: Fri Nov 5 18:34:15 2021 +0100
+ * Date: Tue Nov 9 18:13:53 2021 +0100
  *
  ***
  *
@@ -822,7 +822,7 @@ var PaperScope = Base.extend({
 		}
 	},
 
-	version: "0.12.15-grids",
+	version: "0.12.15-info",
 
 	getView: function() {
 		var project = this.project;
@@ -2815,6 +2815,10 @@ var Matrix = Base.extend({
 				_dontNotify);
 	},
 
+	transformPoint: function(point, dest){
+		return this._transformPoint(point, dest);
+	},
+
 	_transformCoordinates: function(src, dst, count) {
 		for (var i = 0, max = 2 * count; i < max; i += 2) {
 			var x = src[i],
@@ -2823,6 +2827,10 @@ var Matrix = Base.extend({
 			dst[i + 1] = x * this._b + y * this._d + this._ty;
 		}
 		return dst;
+	},
+
+	transformCoordinates: function(src, dst, count){
+		return this._transformCoordinates(src, dst, count);
 	},
 
 	_transformCorners: function(rect) {
@@ -2834,6 +2842,9 @@ var Matrix = Base.extend({
 		return this._transformCoordinates(coords, coords, 4);
 	},
 
+	transformCorners: function(rect){
+		return this._transformCorners(rect);
+	},
 	_transformBounds: function(bounds, dest, _dontNotify) {
 		var coords = this._transformCorners(bounds),
 			min = coords.slice(0, 2),
@@ -2851,6 +2862,10 @@ var Matrix = Base.extend({
 			dest = new Rectangle();
 		return dest._set(min[0], min[1], max[0] - min[0], max[1] - min[1],
 				_dontNotify);
+	},
+
+	transformBounds: function(bounds, dest){
+		return this._transformBounds(bounds, dest);
 	},
 
 	inverseTransform: function() {
@@ -3443,7 +3458,7 @@ var Project = PaperScopeItem.extend(
 				ctx.restore();
 			}
 
-			if(this._grid){
+			if (this._grid) {
 				ctx.save();
 				matrix.applyToContext(ctx);
 				this._grid.draw(ctx, matrix, pixelRatio);
@@ -3455,6 +3470,8 @@ var Project = PaperScopeItem.extend(
 				this._controls.draw(ctx, matrix, pixelRatio);
 				ctx.restore();
 			}
+
+			this._controls.drawInfo(ctx, matrix, pixelRatio);
 		},
 	}
 );
@@ -6775,7 +6792,7 @@ var ControlItem = Item.extend(
 
 		setPosition: function () {
 			var matrix = new Matrix().rotate(this._item.getRotation());
-			var offset = matrix._transformPoint(this._offset);
+			var offset = matrix._transformPoint(this._offset.divide(this.getZoom()));
 			this._item.setPosition(Point.read(arguments).add(offset));
 		},
 
@@ -6795,6 +6812,10 @@ var ControlItem = Item.extend(
 			this._item.setBounds(arguments);
 		},
 
+		getZoom: function(){
+			return this._project._view.getZoom()
+		},
+
 		_createDefaultItem: function () {
 			return new Shape.Rectangle({
 				size: 7,
@@ -6807,7 +6828,7 @@ var ControlItem = Item.extend(
 				return null;
 			}
 
-			var zoom = this._project._view.getZoom();
+			var zoom = this.getZoom();
 			var hit;
 
 			if (
@@ -6824,6 +6845,8 @@ var ControlItem = Item.extend(
 				false,
 				true
 			);
+
+			options.tolerance = 5 / zoom;
 
 			if (this._item._hitTest(point, options)) {
 				hit = new HitResult("fill", this);
@@ -6850,7 +6873,7 @@ var ControlItem = Item.extend(
 
 		isSmallZoom: function () {
 			if (
-				this._project._controls.width * this._project._view.getZoom() <
+				this._project._controls.width * this.getZoom() <
 				10
 			) {
 				return true;
@@ -6895,7 +6918,7 @@ var ControlItem = Item.extend(
 			}
 
 			var controls = this._project.controls;
-			var zoom = this._project._view.getZoom();
+			var zoom = this.getZoom();
 			var shadowOffset = null;
 
 			this.setRotation(controls.angle);
@@ -6930,6 +6953,170 @@ var ControlItem = Item.extend(
 	}
 );
 
+var ControlInfo = Item.extend(
+	 {
+		_class: "ControlInfo",
+		_content: null,
+		_item: null,
+		_label: null,
+		_background: null,
+		_padding: new Point(16, 6),
+		_corner: 'topLeft',
+		_offset: 18,
+
+		initialize: function ControlInfo(content, point, corner) {
+			this._project = paper.project;
+
+			this.setCorner(corner);
+
+			this._initialize(content);
+			this.setContent(content);
+			this.setPosition(point);
+		},
+
+		_initialize: function (content) {
+			this.setLabel(
+				new PointText({
+					fillColor:this._project._controls.fillColor,
+					point: [0, 0],
+					content: content,
+					fontSize: 12,
+					insert: false,
+					fontWeight: 200,
+				})
+			);
+
+			this.setBackground(
+				new Shape.Rectangle({
+					fillColor: this._project._controls.strokeColor,
+					insert: false,
+					position: this._label.position,
+					size: new Size(this._label.bounds).add(this._padding),
+				})
+			);
+
+			this.setItem(
+				new Group({
+					insert: false,
+					children: [this._background, this._label],
+				})
+			);
+			this._updatePivot();
+		},
+
+		_updatePivot: function() {
+			this._item.pivot = this._item.bounds[this._corner].add(this._getOffset());
+		},
+
+		_getOffset: function(){
+			var offsets = {
+				topLeft: -this._offset,
+				topRight: [this._offset, -this._offset],
+				topCenter:[0, -this._offset],
+				leftCenter: [-this._offset, 0],
+				rightCenter: [this._offset, 0],
+				bottomLeft: [-this._offset, this._offset],
+				bottomRight: this._offset,
+				bottomCenter: [0, this._offset],
+			};
+			return offsets[this._corner];
+		},
+
+		getContent: function () {
+			return this._content;
+		},
+
+		setContent: function (content) {
+			this._content = content;
+
+			this._label.set({ content: content });
+
+			this._background.position = this._label.position;
+			this._background.size = new Size(this._label.bounds).add(
+				this._padding
+			);
+			this._background.radius = 4;
+		},
+
+		getCorner: function () {
+			return this._corner;
+		},
+
+		setCorner: function (corner) {
+			this._corner = corner;
+		},
+
+		getPosition: function () {
+			return this._position;
+		},
+
+		setPosition: function () {
+			this._position = Point.read(arguments);
+
+			this._item.position = this._position;
+			this._updatePivot();
+		},
+
+		getLabel: function () {
+			return this._label;
+		},
+
+		setLabel: function (label) {
+			this._label = label;
+		},
+
+		getBackground: function () {
+			return this._background;
+		},
+
+		setBackground: function (background) {
+			this._background = background;
+		},
+
+		getItem: function () {
+			return this._item;
+		},
+
+		setItem: function (item) {
+			this._item = item;
+		},
+
+		draw: function (ctx, matrix, pixelRatio) {
+			var zoom = this._project._view.getZoom();
+
+			ctx.save();
+
+			matrix.applyToContext(ctx);
+
+			var param = new Base({
+				offset: new Point(0, 0),
+				pixelRatio: pixelRatio,
+				viewMatrix: matrix.isIdentity() ? null : matrix,
+				matrices: [new Matrix()],
+				updateMatrix: true,
+			});
+
+			this._item.transform(
+				new Matrix().scale(1 / zoom, this.getPosition()),
+				false,
+				false,
+				true
+			);
+
+			this._item.draw(ctx, param);
+
+			this._item.transform(
+				new Matrix().scale(zoom, this.getPosition()),
+				false,
+				false,
+				true
+			);
+
+			ctx.restore();
+		},
+	}
+);
+
 var Controls = Item.extend(
 	 {
 		_class: "Controls",
@@ -6960,6 +7147,7 @@ var Controls = Item.extend(
 		_children: [],
 		_cornerItems: {},
 		_activeItemsInfo: null,
+		_info: null,
 
 		_oposite: {
 			topLeft: "bottomRight",
@@ -7017,10 +7205,11 @@ var Controls = Item.extend(
 
 		addControl: function (item, name) {
 			item.remove();
-			this._children.push(item);
+			this._children.unshift(item);
 
 			if (name) {
 				this._children[name || item.name] = item;
+				item.name = name;
 				this._changed(65537, item);
 			}
 		},
@@ -7108,8 +7297,26 @@ var Controls = Item.extend(
 			return this._descomposeActiveItemsInfo("center") || new Point(0, 0);
 		},
 
-		getOposite: function(oposite){
+		getOposite: function (oposite) {
 			return this[this._oposite[oposite]];
+		},
+
+		setInfo: function (label, point, corner) {
+			if (!this._info) {
+				return (this._info = new ControlInfo(
+					label,
+					point,
+					corner || "topLeft"
+				));
+			}
+
+			this._info.setCorner(corner || "topLeft");
+			this._info.setContent(label);
+			this._info.setPosition(point);
+		},
+
+		clearInfo: function () {
+			this._info = null;
 		},
 
 		_descomposeActiveItemsInfo: function (name, sub) {
@@ -7170,18 +7377,19 @@ var Controls = Item.extend(
 
 			for (var x in items) {
 				var bounds = items[x].bounds;
-				if (!left || (left && left.bounds.left < bounds.left)) {
+
+				if (!left || (left && left.bounds.left > bounds.left)) {
 					left = items[x];
 				}
-				if (!right || (right && right.bounds.right > bounds.right)) {
+				if (!right || (right && right.bounds.right < bounds.right)) {
 					right = items[x];
 				}
-				if (!top || (top && top.bounds.top < bounds.top)) {
+				if (!top || (top && top.bounds.top > bounds.top)) {
 					top = items[x];
 				}
 				if (
 					!bottom ||
-					(bottom && bottom.bounds.bottom > bounds.bottom)
+					(bottom && bottom.bounds.bottom < bounds.bottom)
 				) {
 					bottom = items[x];
 				}
@@ -7233,6 +7441,12 @@ var Controls = Item.extend(
 
 			for (var x = 0; x < controls.length; x++) {
 				this._children[x].draw(ctx, param);
+			}
+		},
+
+		drawInfo: function (ctx, matrix, pixelRatio) {
+			if (this._info) {
+				this._info.draw(ctx, matrix, pixelRatio);
 			}
 		},
 	},

@@ -33,6 +33,7 @@ var Controls = Item.extend(
         _children: [],
         _cornerItems: {},
         _activeItemsInfo: null,
+        _info: null,
 
         _oposite: {
             topLeft: "bottomRight",
@@ -94,10 +95,11 @@ var Controls = Item.extend(
          */
         addControl: function (item, name) {
             item.remove();
-            this._children.push(item);
+            this._children.unshift(item);
 
             if (name) {
                 this._children[name || item.name] = item;
+                item.name = name;
                 this._changed(/*#=*/ Change.CONTROL, item);
             }
         },
@@ -249,16 +251,43 @@ var Controls = Item.extend(
             return this._descomposeActiveItemsInfo("center") || new Point(0, 0);
         },
 
-        /** 
-        * @name Controls#getOposite
-        * @param String
-        * @values 'center', 'topCenter', 'rightCenter', 'bottomCenter', 'leftCenter', 'topLeft', 'topRight', 'bottomRight', 'bottomLef'
-        * @function
-        * @return {Point} 
-        * 
-        */
-        getOposite: function(oposite){
+        /**
+         * @name Controls#getOposite
+         * @param String
+         * @values 'center', 'topCenter', 'rightCenter', 'bottomCenter', 'leftCenter', 'topLeft', 'topRight', 'bottomRight', 'bottomLeft'
+         * @function
+         * @return {Point}
+         *
+         */
+        getOposite: function (oposite) {
             return this[this._oposite[oposite]];
+        },
+
+        /**
+         *
+         * @param {String} label
+         * @param {Point} point
+         * @param {'topCenter' | 'rightCenter' | 'bottomCenter' | 'leftCenter' | 'topLeft' | 'topRight' | 'bottomRight' | 'bottomLeft'} [corner='topLeft']
+         */
+        setInfo: function (label, point, corner) {
+            if (!this._info) {
+                return (this._info = new ControlInfo(
+                    label,
+                    point,
+                    corner || "topLeft"
+                ));
+            }
+
+            this._info.setCorner(corner || "topLeft");
+            this._info.setContent(label);
+            this._info.setPosition(point);
+        },
+
+        /**
+         * @function
+         */
+        clearInfo: function () {
+            this._info = null;
         },
 
         _descomposeActiveItemsInfo: function (name, sub) {
@@ -319,18 +348,19 @@ var Controls = Item.extend(
 
             for (var x in items) {
                 var bounds = items[x].bounds;
-                if (!left || (left && left.bounds.left < bounds.left)) {
+
+                if (!left || (left && left.bounds.left > bounds.left)) {
                     left = items[x];
                 }
-                if (!right || (right && right.bounds.right > bounds.right)) {
+                if (!right || (right && right.bounds.right < bounds.right)) {
                     right = items[x];
                 }
-                if (!top || (top && top.bounds.top < bounds.top)) {
+                if (!top || (top && top.bounds.top > bounds.top)) {
                     top = items[x];
                 }
                 if (
                     !bottom ||
-                    (bottom && bottom.bounds.bottom > bounds.bottom)
+                    (bottom && bottom.bounds.bottom < bounds.bottom)
                 ) {
                     bottom = items[x];
                 }
@@ -382,6 +412,12 @@ var Controls = Item.extend(
 
             for (var x = 0; x < controls.length; x++) {
                 this._children[x].draw(ctx, param);
+            }
+        },
+
+        drawInfo: function (ctx, matrix, pixelRatio) {
+            if (this._info) {
+                this._info.draw(ctx, matrix, pixelRatio);
             }
         },
     },

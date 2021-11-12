@@ -1,5 +1,5 @@
 /*!
- * Paper.js v0.12.15-grids - The Swiss Army Knife of Vector Graphics Scripting.
+ * Paper.js v0.12.15-info - The Swiss Army Knife of Vector Graphics Scripting.
  * http://paperjs.org/
  *
  * Copyright (c) 2011 - 2020, Jürg Lehni & Jonathan Puckey
@@ -9,7 +9,7 @@
  *
  * All rights reserved.
  *
- * Date: Fri Nov 5 18:34:15 2021 +0100
+ * Date: Tue Nov 9 18:13:53 2021 +0100
  *
  * This is an auto-generated type definition.
  */
@@ -456,16 +456,42 @@ declare namespace paper {
     }
 
     
-    class ControlItem extends Item {
+    class ControlInfo extends Item {
         
-        item: string
+        content: string
 
         
         corner: string
 
         
+        position: Point
+
+        
+        label: PointText
+
+        
+        background: Path
+
+        
+        item: Group
+
+
+    }
+
+    
+    class ControlItem extends Item {
+        
+        item: string
+
+        
+        corner: 'topCenter'  |  'rightCenter'  |  'bottomCenter'  |  'leftCenter'  |  'topLeft'  |  'topRight'  |  'bottomRight'  |  'bottomLef'
+
+        
         offset: Point
 
+
+        
+        constructor(corner: 'topCenter'  |  'rightCenter'  |  'bottomCenter'  |  'leftCenter'  |  'topLeft'  |  'topRight'  |  'bottomRight'  |  'bottomLeft', offset: Point | number | Array<number>, item: Item)
 
     }
 
@@ -529,6 +555,12 @@ declare namespace paper {
 
         
         getOposite(String: any): Point
+
+        
+        setInfo(label: string, point: Point, corner?: 'topCenter'  |  'rightCenter'  |  'bottomCenter'  |  'leftCenter'  |  'topLeft'  |  'topRight'  |  'bottomRight'  |  'bottomLeft'): void
+
+        
+        clearInfo(): void
 
     }
 
@@ -1512,11 +1544,6 @@ declare namespace paper {
          * The angle of item
          */
         angle: number
-
-        /** 
-         * @return Selector
-         */
-        selector: any
 
         /** 
          * @return Boolean
@@ -3336,6 +3363,18 @@ declare namespace paper {
          */
         transform(src: number[], dst: number[], count: number): number[]
 
+        
+        transformPoint(point: Point, dest?: Point): Point
+
+        
+        transformCoordinates(src: Array<number>, dst?: Array<number>, count?: number): Array<number>
+
+        
+        transformCorners(rect: Rectangle): Array<number>
+
+        
+        transformBounds(bounds: Rectangle, dest: Rectangle): Rectangle
+
         /** 
          * Inverse transforms a point and returns the result.
          * 
@@ -3485,6 +3524,7 @@ declare namespace paper {
         Artboard: typeof Artboard
         Color: typeof Color
         CompoundPath: typeof CompoundPath
+        ControlInfo: typeof ControlInfo
         ControlItem: typeof ControlItem
         Controls: typeof Controls
         Curve: typeof Curve
@@ -5247,9 +5287,6 @@ declare namespace paper {
          * The inserMode
          */
         insertMode: boolean
-
-        
-        itemSelector: Item
 
         /** 
          * The inserMode
@@ -7730,6 +7767,7 @@ declare module '@yomyer/paper'
     export class Artboard extends paper.Artboard {}
     export class Color extends paper.Color {}
     export class CompoundPath extends paper.CompoundPath {}
+    export class ControlInfo extends paper.ControlInfo {}
     export class ControlItem extends paper.ControlItem {}
     export class Controls extends paper.Controls {}
     export class Curve extends paper.Curve {}

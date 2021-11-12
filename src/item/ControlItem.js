@@ -12,6 +12,13 @@ var ControlItem = Item.extend(
         _offset: null,
         _control: true,
 
+        /**
+         * @name ControlItem#initialize
+         * 
+         * @param {'topCenter' | 'rightCenter' | 'bottomCenter' | 'leftCenter' | 'topLeft' | 'topRight' | 'bottomRight' | 'bottomLeft'} corner
+         * @param {Point|Number|Array<number>} offset
+         * @param {Item} item
+         */
         initialize: function ControlItem(corner, offset, item) {
             this._project = paper.project;
             if (item) {
@@ -42,7 +49,7 @@ var ControlItem = Item.extend(
 
         /**
          * @bean
-         * @type String
+         * @type 'topCenter' | 'rightCenter' | 'bottomCenter' | 'leftCenter' | 'topLeft' | 'topRight' | 'bottomRight' | 'bottomLef'
          */
         getCorner: function () {
             return this._corner;
@@ -70,7 +77,7 @@ var ControlItem = Item.extend(
 
         setPosition: function (/* point */) {
             var matrix = new Matrix().rotate(this._item.getRotation());
-            var offset = matrix._transformPoint(this._offset);
+            var offset = matrix._transformPoint(this._offset.divide(this.getZoom()));
             this._item.setPosition(Point.read(arguments).add(offset));
         },
 
@@ -90,6 +97,10 @@ var ControlItem = Item.extend(
             this._item.setBounds(arguments);
         },
 
+        getZoom: function(){
+            return this._project._view.getZoom()
+        },
+
         _createDefaultItem: function () {
             return new Shape.Rectangle({
                 size: 7,
@@ -102,7 +113,7 @@ var ControlItem = Item.extend(
                 return null;
             }
 
-            var zoom = this._project._view.getZoom();
+            var zoom = this.getZoom();
             var hit;
 
             if (
@@ -119,6 +130,8 @@ var ControlItem = Item.extend(
                 false,
                 true
             );
+
+            options.tolerance = 5 / zoom;
 
             if (this._item._hitTest(point, options)) {
                 hit = new HitResult("fill", this);
@@ -145,7 +158,7 @@ var ControlItem = Item.extend(
 
         isSmallZoom: function () {
             if (
-                this._project._controls.width * this._project._view.getZoom() <
+                this._project._controls.width * this.getZoom() <
                 10
             ) {
                 return true;
@@ -190,7 +203,7 @@ var ControlItem = Item.extend(
             }
 
             var controls = this._project.controls;
-            var zoom = this._project._view.getZoom();
+            var zoom = this.getZoom();
             var shadowOffset = null;
 
             this.setRotation(controls.angle);
