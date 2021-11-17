@@ -1,5 +1,5 @@
 /*!
- * Paper.js v0.12.15-info - The Swiss Army Knife of Vector Graphics Scripting.
+ * Paper.js v0.12.15-newarboards - The Swiss Army Knife of Vector Graphics Scripting.
  * http://paperjs.org/
  *
  * Copyright (c) 2011 - 2020, Jürg Lehni & Jonathan Puckey
@@ -9,7 +9,7 @@
  *
  * All rights reserved.
  *
- * Date: Fri Nov 12 18:35:36 2021 +0100
+ * Date: Wed Nov 17 15:38:42 2021 +0100
  *
  ***
  *
@@ -822,7 +822,7 @@ var PaperScope = Base.extend({
 		}
 	},
 
-	version: "0.12.15-info",
+	version: "0.12.15-newarboards",
 
 	getView: function() {
 		var project = this.project;
@@ -3462,13 +3462,15 @@ var Project = PaperScopeItem.extend(
 				ctx.restore();
 			}
 
-			if (this._activeItems.length && this._controls) {
-				ctx.save();
-				this._controls.draw(ctx, matrix, pixelRatio);
-				ctx.restore();
-			}
+			if (this._controls) {
+				if (this._activeItems.length) {
+					ctx.save();
+					this._controls.draw(ctx, matrix, pixelRatio);
+					ctx.restore();
+				}
 
-			this._controls.drawInfo(ctx, matrix, pixelRatio);
+				this._controls.drawInfo(ctx, matrix, pixelRatio);
+			}
 		},
 	}
 );
@@ -3692,6 +3694,15 @@ new function() {
 
 	setAngle: function(angle){
 		this._angle = angle;
+	},
+
+	getInheritAngle: function(){
+		var angle = this._angle;
+		if(this._parent){
+			angle += this._parent.getInheritAngle()
+		}
+
+		return angle;
 	},
 
 	getBlocked: function(){
@@ -4395,16 +4406,17 @@ new function() {
 	},
 
 	getCorners: function(unrotated) {
-		var angle = this._angle;
+		var angle = this.getInheritAngle();
 		var bounds = this.bounds;
+		var center =  this.bounds.center;
 
 		if (angle !== 0 && !unrotated) {
-			this.transform(new Matrix().rotate(-angle, this.getPosition(true)), false, false, true);
+			this.transform(new Matrix().rotate(-angle, center), false, false, true);
 			bounds = this.bounds.clone();
-			this.transform(new Matrix().rotate(angle, this.getPosition(true)), false, false, true);
+			this.transform(new Matrix().rotate(angle, center), false, false, true);
 		}
 
-		var matrix = new Matrix().rotate(!unrotated && angle, bounds.center);
+		var matrix = new Matrix().rotate(!unrotated && angle, center);
 		var corners = matrix._transformCorners(bounds);
 
 		return corners;
@@ -4474,7 +4486,7 @@ new function() {
 		var children = this._children;
 
 		if(this instanceof Project){
-			var controls = this._controls._children;
+			var controls = this._controls && this._controls._children;
 			if(controls && this._activeItems.length){
 				children = children.concat(controls);
 			}
@@ -5524,6 +5536,7 @@ var Artboard = Group.extend(
 		_drawing: false,
 		_getItemsInChildrens: true,
 		_serializeStyle: true,
+		_item: null,
 		_serializeFields: {
 			size: null,
 			point: null,
@@ -5537,21 +5550,10 @@ var Artboard = Group.extend(
 			this._children = [];
 			this._namedChildren = {};
 
-			var rect = Rectangle.readNamed(args, "rectangle");
-			if (rect) {
-				args[0].size = rect.getSize(true);
-				args[0].point = rect.getPoint(true);
-			}
+			this.setItem(args[0]);
 
 			if (!this._initialize(args[0])) {
 				this.addChildren(Array.isArray(args) ? args : arguments);
-			}
-
-			if (!this._size) {
-				this.setSize(1000);
-			}
-			if (!this._point) {
-				this.setPoint(0);
 			}
 
 			this._project._artboards.push(this);
@@ -5561,36 +5563,19 @@ var Artboard = Group.extend(
 			return this._parent || (this._index != null && this._project);
 		},
 
-		getSize: function () {
-			var size = this._size;
-			return new LinkedSize(size.width, size.height, this, "setSize");
+		getItem: function () {
+			return this._item;
 		},
 
-		setSize: function () {
-			var size = Size.read(arguments);
+		setItem: function (args) {
+			var args = Base.set(Object.assign({}, args), {
+				insert: false,
+				children: undefined,
+				rotation: 0,
+				actived: false,
+			});
 
-			if (!this._size) {
-				this._size = size.clone();
-			} else if (!this._size.equals(size)) {
-				this._size._set(size.width, size.height);
-				this._changed(9);
-			}
-		},
-
-		getPoint: function () {
-			var point = this._point;
-			return new LinkedPoint(point.x, point.y, this, "setPoint");
-		},
-
-		setPoint: function () {
-			var point = Point.read(arguments);
-
-			if (!this._point) {
-				this._point = point.clone();
-			} else if (!this._point.equals(point)) {
-				this._point._set(point.x, point.y);
-				this._changed(9);
-			}
+			this._item = new Shape.Rectangle(args);
 		},
 
 		getName: function () {
@@ -5614,7 +5599,6 @@ var Artboard = Group.extend(
 		},
 
 		setActived: function setActived(actived) {
-
 			this._project._activeArtboard = actived ? this : null;
 
 			if (this.children.length) {
@@ -5630,8 +5614,6 @@ var Artboard = Group.extend(
 		},
 
 		copyContent: function copyContent(source) {
-			this.setSize(source._size);
-			this.setPoint(source._point);
 			copyContent.base.call(this, source);
 		},
 
@@ -5642,10 +5624,7 @@ var Artboard = Group.extend(
 		},
 
 		_getBounds: function (matrix, options) {
-			var rect = new Rectangle(this._size).setTopLeft(
-					this._point.x,
-					this._point.y
-				),
+			var rect = this._item.bounds,
 				style = this._style,
 				strokeWidth =
 					options.stroke &&
@@ -5675,15 +5654,14 @@ var Artboard = Group.extend(
 			_applyRecursively,
 			_setApplyMatrix
 		) {
-			if (!matrix) {
+			if(!matrix){
 				return;
 			}
 
-			this._drawMatrix = matrix;
-
-			this._changed(25);
-
+			this._item.transform(matrix, _applyRecursively, _setApplyMatrix);
 			this._transformContent(matrix, _applyRecursively, _setApplyMatrix);
+
+			this._changed(Change.MATRIX);
 		},
 
 		_hitTestChildren: function _hitTestChildren(
@@ -5702,24 +5680,6 @@ var Artboard = Group.extend(
 			}
 
 			if (options.legacy || this._actived || !this._children.length) {
-				if (this.bounds.contains(point)) {
-					var hit = new HitResult("fill", this);
-					var match = options.match;
-
-					if (match && !match(hit)) {
-						hit = null;
-					}
-
-					if (options.legacy) {
-						hitTestChildren();
-					}
-
-					if (hit && options.all) {
-						options.all.push(hit);
-					}
-
-					return hit;
-				}
 				return hitTestChildren();
 			} else {
 				return hitTestChildren();
@@ -5727,6 +5687,8 @@ var Artboard = Group.extend(
 		},
 
 		_remove: function _remove(notifySelf, notifyParent) {
+			this._item.remove();
+
 			if (this._project) {
 				var index = this._project._artboards.indexOf(this);
 				if (index != -1) {
@@ -5744,48 +5706,13 @@ var Artboard = Group.extend(
 		},
 
 		_draw: function (ctx, param, viewMatrix, strokeMatrix) {
-			this._drawRect(ctx, param, viewMatrix, strokeMatrix);
+			this._drawRect(ctx, param);
 			this._drawChildren(ctx, param);
 		},
 
-		_drawRect: function (ctx, param, viewMatrix, strokeMatrix) {
-			var style = this._style,
-				hasFill = style.hasFill(),
-				hasStroke = style.hasStroke(),
-				dontPaint = param.dontFinish || param.clip,
-				untransformed = !strokeMatrix;
-
-			ctx.beginPath();
-			if (hasFill || hasStroke || dontPaint) {
-				var matrix = this._drawMatrix;
-				var rect = this.bounds;
-
-				var x1 = rect.x,
-					y1 = rect.y,
-					x2 = x1 + rect.width,
-					y2 = y1 + rect.height,
-					coords = [x1, y1, x2, y1, x2, y2, x1, y2];
-
-				if (matrix) {
-					coords = matrix._transformCorners(rect);
-				}
-
-				ctx.beginPath();
-				ctx.moveTo(coords[0], coords[1]);
-				ctx.lineTo(coords[2], coords[3]);
-				ctx.lineTo(coords[4], coords[5]);
-				ctx.lineTo(coords[6], coords[7]);
-				ctx.closePath();
-			}
-			ctx.closePath();
-
-			if (!dontPaint && (hasFill || hasStroke)) {
-				this._setStyles(ctx, param, viewMatrix);
-				if (hasFill) {
-					ctx.fill(style.getFillRule());
-					ctx.shadowColor = "rgba(0,0,0,0)";
-				}
-				if (hasStroke) ctx.stroke();
+		_drawRect: function (ctx, param) {
+			if (this._item) {
+				this._item.draw(ctx, param);
 			}
 		},
 
@@ -6831,51 +6758,6 @@ var ControlItem = Item.extend(
 		},
 
 		_hitTest: function (point, options) {
-			if (this.isSmallZoom()) {
-				return null;
-			}
-
-			var zoom = this.getZoom();
-			var hit;
-
-			if (
-				this._item._locked ||
-				!this._item._visible ||
-				!options.controls
-			) {
-				return null;
-			}
-
-			this._item.transform(
-				new Matrix().scale(1 / zoom, this.getPosition()),
-				false,
-				false,
-				true
-			);
-
-			options.tolerance = 5 / zoom;
-
-			if (this._item._hitTest(point, options)) {
-				hit = new HitResult("fill", this);
-				var match = options.match;
-
-				if (match && !match(hit)) {
-					hit = null;
-				}
-
-				if (hit && options.all) {
-					options.all.push(hit);
-				}
-			}
-
-			this._item.transform(
-				new Matrix().scale(zoom, this.getPosition()),
-				false,
-				false,
-				true
-			);
-
-			return hit;
 		},
 
 		isSmallZoom: function () {

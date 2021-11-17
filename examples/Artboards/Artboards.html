@@ -6,14 +6,14 @@
         <link rel="stylesheet" href="../css/style.css" />
         <script type="text/javascript" src="../../dist/index.js"></script>
         <script type="text/paperscript" canvas="canvas">
-            var empty = new Artboard({
+            /*var empty = new Artboard({
                 from: 600,
                 to: 1000,
                 fillColor: 'blue',
                 name: 'xD',
                 // opacity: 0.5,
                 //guide: true
-            });
+            });*/
 
             var rect = new Path.Rectangle({
                 from: 0,
@@ -59,11 +59,10 @@
                 name: 'xD',
                 children: [single, group],
                 actived: true,
-                // otation: 20,
-                selected: true
+                rotation: 20,
             });
 
-            noEmpty.rotate(20);
+            // noEmpty.rotate(20);
             console.log(noEmpty.exportJSON());
 
             /*
@@ -91,7 +90,7 @@
             project.controls.addControl(control, 'test');
             */
             project.view.translate(100)
-            project.view.scale(1.2)
+            // project.view.scale(1.2)
 
             // var g = new Group(artboard);
 
@@ -143,6 +142,7 @@
 
                 if (!items.length) return null;
                
+               console.log( items);
                return items[0].item;
             }
 
@@ -172,7 +172,6 @@
                 
                 var item = getPathByPoint(event.point, event.modifiers.meta);
                 
-
                 if (item){
                     item.selected = true;
                 }
