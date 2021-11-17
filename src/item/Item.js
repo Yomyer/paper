@@ -455,6 +455,15 @@ new function() { // Injection scope for various item event handlers
         this._angle = angle;
     },
 
+    getInheritAngle: function(){
+        var angle = this._angle;
+        if(this._parent){
+            angle += this._parent.getInheritAngle()
+        }
+
+        return angle;
+    },
+
     /**
      * 
      * @name Item#blocked
@@ -2037,16 +2046,18 @@ new function() { // Injection scope for various item event handlers
      * 
     */
     getCorners: function(unrotated) {
-        var angle = this._angle;
+        
+        var angle = this.getInheritAngle();
         var bounds = this.bounds;
+        var center =  this.bounds.center;
 
         if (angle !== 0 && !unrotated) {
-            this.transform(new Matrix().rotate(-angle, this.getPosition(true)), false, false, true);
+            this.transform(new Matrix().rotate(-angle, center), false, false, true);
             bounds = this.bounds.clone();
-            this.transform(new Matrix().rotate(angle, this.getPosition(true)), false, false, true);
+            this.transform(new Matrix().rotate(angle, center), false, false, true);
         }
 
-        var matrix = new Matrix().rotate(!unrotated && angle, bounds.center);
+        var matrix = new Matrix().rotate(!unrotated && angle, center);
         var corners = matrix._transformCorners(bounds);
 
         return corners;
@@ -2136,7 +2147,7 @@ new function() { // Injection scope for hit-test functions shared with project
         var children = this._children;
 
         if(this instanceof Project){
-            var controls = this._controls._children;
+            var controls = this._controls && this._controls._children;
             if(controls && this._activeItems.length){
                 children = children.concat(controls);
             }

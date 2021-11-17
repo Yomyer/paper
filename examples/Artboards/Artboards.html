@@ -20,7 +20,6 @@
                 to: 10,
                 fillColor: 'red',
                 rotation: 20,
-                actived: true
             });
 
             var rect = new Path.Rectangle({
@@ -28,18 +27,15 @@
                 to: [1000, 300],
                 fillColor: 'red',
                 rotation: 20,
-                actived: true
             });
 
             var oval = new Path.Oval({
                 from: [700, 400],
                 to: [1000, 500],
                 fillColor: 'orange',
-                rotation: -20,
-                actived: true
+                rotation: -20             
             });
 
-            
             var single = new Path.Rectangle({
                 from: [100, 100],
                 to: [400, 300],
@@ -61,9 +57,16 @@
                 to: 500,
                 fillColor: 'blue',
                 name: 'xD',
-                children: [single, group]
+                children: [single, group],
+                actived: true,
+                // otation: 20,
+                selected: true
             });
 
+            noEmpty.rotate(20);
+            console.log(noEmpty.exportJSON());
+
+            /*
             project.controls.onMouseEnter = function(item){
                 console.log(item);
             };
@@ -86,8 +89,9 @@
             });
 
             project.controls.addControl(control, 'test');
-
+            */
             project.view.translate(100)
+            project.view.scale(1.2)
 
             // var g = new Group(artboard);
 
@@ -173,7 +177,7 @@
                     item.selected = true;
                 }
 
-                project.controls.setInfo('xDDDDD', event.point);
+                // project.controls.setInfo('xDDDDD', event.point);
                     
             }
 

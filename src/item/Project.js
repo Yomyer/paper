@@ -1079,13 +1079,15 @@ var Project = PaperScopeItem.extend(
                 ctx.restore();
             }
 
-            if (this._activeItems.length && this._controls) {
-                ctx.save();
-                this._controls.draw(ctx, matrix, pixelRatio);
-                ctx.restore();
-            }
+            if (this._controls) {
+                if (this._activeItems.length) {
+                    ctx.save();
+                    this._controls.draw(ctx, matrix, pixelRatio);
+                    ctx.restore();
+                }
 
-            this._controls.drawInfo(ctx, matrix, pixelRatio);
+                this._controls.drawInfo(ctx, matrix, pixelRatio);
+            }
         },
     }
 );

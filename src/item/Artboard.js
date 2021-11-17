@@ -35,7 +35,7 @@ var Artboard = Group.extend(
             size: null,
             point: null,
             grid: null,
-            children: []
+            children: [],
         },
 
         initialize: function Artboard() {
@@ -48,9 +48,9 @@ var Artboard = Group.extend(
             if (rect) {
                 args[0].size = rect.getSize(true);
                 args[0].point = rect.getPoint(true);
-            }            
+            }
 
-            if (!this._initialize(args[0])){
+            if (!this._initialize(args[0])) {
                 this.addChildren(Array.isArray(args) ? args : arguments);
             }
 
@@ -192,7 +192,7 @@ var Artboard = Group.extend(
             });
         },
 
-        _getBounds: function(matrix, options) {
+        _getBounds: function (matrix, options) {
             var rect = new Rectangle(this._size).setTopLeft(
                     this._point.x,
                     this._point.y
@@ -230,9 +230,10 @@ var Artboard = Group.extend(
                 return;
             }
 
-            var rect = matrix._transformBounds(this.bounds);
-            this._point.set(rect.x, rect.y);
-            this._size.set(rect.width, rect.height);
+            this._drawMatrix = matrix;
+            // var rect = matrix._transformBounds(this.bounds);
+            // this._point.set(rect.x, rect.y);
+            // this._size.set(rect.width, rect.height);
 
             this._changed(/*#=*/ Change.MATRIX);
 
@@ -263,7 +264,7 @@ var Artboard = Group.extend(
                         hit = null;
                     }
 
-                    if(options.legacy){
+                    if (options.legacy) {
                         hitTestChildren();
                     }
 
@@ -283,10 +284,7 @@ var Artboard = Group.extend(
             if (this._project) {
                 var index = this._project._artboards.indexOf(this);
                 if (index != -1) {
-                    this._project._artboards.splice(
-                        index,
-                        1
-                    );
+                    this._project._artboards.splice(index, 1);
                 }
             }
 
@@ -313,12 +311,29 @@ var Artboard = Group.extend(
 
             ctx.beginPath();
             if (hasFill || hasStroke || dontPaint) {
-                var size = this._size,
-                    point = this._point;
+                // if (matrix) rect = matrix._transformBounds(rect);
+                // var rect = param.matrix._transformBounds(this.bounds);
+                var matrix = this._drawMatrix;
+                var rect = this.bounds;
 
-                ctx.rect(point.x, point.y, size.width, size.height);
+                var x1 = rect.x,
+                    y1 = rect.y,
+                    x2 = x1 + rect.width,
+                    y2 = y1 + rect.height,
+                    coords = [x1, y1, x2, y1, x2, y2, x1, y2];
+
+                if (matrix) {
+                    coords = matrix._transformCorners(rect);
+                }
+
+                ctx.beginPath();
+                ctx.moveTo(coords[0], coords[1]);
+                ctx.lineTo(coords[2], coords[3]);
+                ctx.lineTo(coords[4], coords[5]);
+                ctx.lineTo(coords[6], coords[7]);
                 ctx.closePath();
             }
+            ctx.closePath();
 
             if (!dontPaint && (hasFill || hasStroke)) {
                 this._setStyles(ctx, param, viewMatrix);
