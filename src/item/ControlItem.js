@@ -109,7 +109,51 @@ var ControlItem = Item.extend(
         },
 
         _hitTest: function (point, options) {
-            
+            if (this.isSmallZoom()) {
+                return null;
+            }
+
+            var zoom = this.getZoom();
+            var hit;
+
+            if (
+                this._item._locked ||
+                !this._item._visible ||
+                !options.controls
+            ) {
+                return null;
+            }
+
+            this._item.transform(
+                new Matrix().scale(1 / zoom, this.getPosition()),
+                false,
+                false,
+                true
+            );
+
+            options.tolerance = 5 / zoom;
+
+            if (this._item._hitTest(point, options)) {
+                hit = new HitResult("fill", this);
+                var match = options.match;
+
+                if (match && !match(hit)) {
+                    hit = null;
+                }
+
+                if (hit && options.all) {
+                    options.all.push(hit);
+                }
+            }
+
+            this._item.transform(
+                new Matrix().scale(zoom, this.getPosition()),
+                false,
+                false,
+                true
+            );
+
+            return hit;
         },
 
         isSmallZoom: function () {

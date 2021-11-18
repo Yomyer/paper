@@ -9,7 +9,7 @@
  *
  * All rights reserved.
  *
- * Date: Wed Nov 17 15:38:42 2021 +0100
+ * Date: Wed Nov 17 17:14:12 2021 +0100
  *
  ***
  *
@@ -1884,7 +1884,7 @@ var Point = Base.extend({
 						* 1e-8;
 		}
 	}
-}, Base.each(['round', 'ceil', 'floor', 'abs'], function(key) {
+}, Base.each(['round', 'ceil', 'floor', 'abs', 'sign'], function(key) {
 	var op = Math[key];
 	this[key] = function() {
 		return new Point(op(this.x), op(this.y));
@@ -3510,9 +3510,15 @@ var Item = Base.extend(Emitter, {
 	_selection: 0,
 	_selectionCache: null,
 	_getItemsInChildrens: false,
+	_transformType: null,
 	_selectBounds: true,
 	_selectChildren: false,
 	_serializeStyle: true,
+	_flipped: {x:false, y: false},
+	_constraints: {
+		horizontal: 'scale',
+		vertical: 'start'
+	},
 	_serializeFields: {
 		name: null,
 		applyMatrix: null,
@@ -3836,6 +3842,13 @@ new function() {
 
 	setPosition: function() {
 		this.translate(Point.read(arguments).subtract(this.getPosition(true)));
+	},
+
+	getConstraints(){
+		return this._constraints
+	},
+	setConstraints(constraints){
+		return this._constraints = constraints
 	},
 
 	_getPositionFromBounds: function(bounds) {
@@ -4385,8 +4398,7 @@ new function() {
 	},
 
 	setActived: function(actived){
-
-		if(actived && !this._project._activeItems[this.uid] &&  !this._project._activeItems[this._parent.uid]){
+		if(actived && !this._project._activeItems[this.uid] && !this._project._activeItems[this._parent && this._parent.uid]){
 			this._project._activeItems.push(this);
 			this._project._activeItems[this.uid] = this;
 			this._actived = true;
@@ -4453,7 +4465,7 @@ new function() {
 			bottomCenter: corners.bottomRight
 				.add(corners.bottomLeft)
 				.divide(2),
-			leftCenter: corners.bottomLeft.add(corners.topLeft).divide(2),
+			leftCenter: corners.bottomLeft.add(corners.topLeft).divide(2)
 		});
 	},
 
@@ -5047,13 +5059,21 @@ new function() {
 
 		if(rotate) this._angle += value;
 
+		this._transformType = key;
+
 		return this.transform(new Matrix()[key](value,
 				center || this.getPosition(true)));
 	};
 }, {
 	translate: function() {
+		this._transformType = 'translate';
+
 		var mx = new Matrix();
 		return this.transform(mx.translate.apply(mx, arguments));
+	},
+
+	getFlipped: function(){
+		return this._flipped
 	},
 
 	transform: function(matrix, _applyRecursively, _setApplyMatrix, _skypChanges) {
@@ -5115,6 +5135,7 @@ new function() {
 		} else if (transformMatrix && position && this._pivot) {
 			this._position = matrix._transformPoint(position, position);
 		}
+
 		return this;
 	},
 
@@ -5540,6 +5561,7 @@ var Artboard = Group.extend(
 		_getItemsInChildrens: true,
 		_serializeStyle: true,
 		_item: null,
+		_transformCache: {},
 		_serializeFields: {
 			size: null,
 			point: null,
@@ -5617,6 +5639,7 @@ var Artboard = Group.extend(
 		},
 
 		copyContent: function copyContent(source) {
+			this._item = source._item.clone();
 			copyContent.base.call(this, source);
 		},
 
@@ -5652,19 +5675,28 @@ var Artboard = Group.extend(
 				: rect;
 		},
 
+		getActiveInfo: function () {
+			return this._item.getActiveInfo();
+		},
+
 		transform: function tranform(
 			matrix,
 			_applyRecursively,
 			_setApplyMatrix
 		) {
-			if(!matrix){
+			if (!matrix) {
 				return;
 			}
 
 			this._item.transform(matrix, _applyRecursively, _setApplyMatrix);
-			this._transformContent(matrix, _applyRecursively, _setApplyMatrix);
 
-			this._changed(Change.MATRIX);
+			tranform.base.call(
+				this,
+				matrix,
+				_applyRecursively,
+				_setApplyMatrix
+			);
+
 		},
 
 		_hitTestChildren: function _hitTestChildren(
@@ -5683,6 +5715,28 @@ var Artboard = Group.extend(
 			}
 
 			if (options.legacy || this._actived || !this._children.length) {
+				if (
+					this._item._hitTest(
+						point,
+						Base.set(Object.assign({}, options), { all: null })
+					)
+				) {
+					var hit = new HitResult("fill", this);
+					var match = options.match;
+
+					if (match && !match(hit)) {
+						hit = null;
+					}
+
+					if (options.legacy) {
+						hitTestChildren();
+					}
+
+					if (hit && options.all) {
+						options.all.push(hit);
+					}
+					return hit;
+				}
 				return hitTestChildren();
 			} else {
 				return hitTestChildren();
@@ -5720,22 +5774,6 @@ var Artboard = Group.extend(
 		},
 
 		_drawClip: function (ctx, param) {
-			if (this.getClipped()) {
-				var size = this._size,
-					point = this._point;
-
-				var clipItem = new Shape.Rectangle(
-					point.x,
-					point.y,
-					size.width,
-					size.height
-				);
-				this._insertItem(0, clipItem);
-
-				clipItem.draw(ctx, param.extend({ clip: true }));
-
-				clipItem.remove();
-			}
 		},
 
 		_drawChildren: function (ctx, param) {
@@ -6761,6 +6799,51 @@ var ControlItem = Item.extend(
 		},
 
 		_hitTest: function (point, options) {
+			if (this.isSmallZoom()) {
+				return null;
+			}
+
+			var zoom = this.getZoom();
+			var hit;
+
+			if (
+				this._item._locked ||
+				!this._item._visible ||
+				!options.controls
+			) {
+				return null;
+			}
+
+			this._item.transform(
+				new Matrix().scale(1 / zoom, this.getPosition()),
+				false,
+				false,
+				true
+			);
+
+			options.tolerance = 5 / zoom;
+
+			if (this._item._hitTest(point, options)) {
+				hit = new HitResult("fill", this);
+				var match = options.match;
+
+				if (match && !match(hit)) {
+					hit = null;
+				}
+
+				if (hit && options.all) {
+					options.all.push(hit);
+				}
+			}
+
+			this._item.transform(
+				new Matrix().scale(zoom, this.getPosition()),
+				false,
+				false,
+				true
+			);
+
+			return hit;
 		},
 
 		isSmallZoom: function () {

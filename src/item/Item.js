@@ -66,12 +66,18 @@ var Item = Base.extend(Emitter, /** @lends Item# */{
     _selection: 0,
     _selectionCache: null,
     _getItemsInChildrens: false,
+    _transformType: null,
     // Controls whether bounds should appear selected when the item is selected.
     // This is only turned off for Group, Layer and PathItem, where it can be
     // selected separately by setting item.bounds.selected = true;
     _selectBounds: true,
     _selectChildren: false,
     _serializeStyle: true,
+    _flipped: {x:false, y: false},
+    _constraints: {
+        horizontal: 'scale', 
+        vertical: 'start'
+    },
     // Provide information about fields to be serialized, with their defaults
     // that can be omitted.
     _serializeFields: {
@@ -866,6 +872,21 @@ new function() { // Injection scope for various item event handlers
         // LinkedPoint to simply calculate this distance.
         this.translate(Point.read(arguments).subtract(this.getPosition(true)));
     },
+
+    /**
+     * The if item is constraints.
+     *
+     * @name Item#constraints
+     * @type Object {horitonal: 'start'|'end'|'both'|'center'|'scale', vertical: 'start'|'end'|'both'|'center'|'scale'}
+     */
+    getConstraints(){
+        return this._constraints
+    },
+    
+    setConstraints(constraints){
+        return this._constraints = constraints
+    },
+
 
     /**
      * Internal method used to calculate position either from pivot point or
@@ -2084,7 +2105,7 @@ new function() { // Injection scope for various item event handlers
      * The info of active object
      *
      * @name Item#activeInfo
-     * @type Object {angle: number, width: number, height: number, center: Point, topCenter: Point, rightCenter: Point, bottomCenter: Point, leftCenter: Point, topLeft: Point, topRight: Point, bottomRight: Point, bottomLeft: Point}
+     * @type Object {angle: number, width: number, height: number, top: number, left: number, rigth: number, bottom: number, center: Point, topCenter: Point, rightCenter: Point, bottomCenter: Point, leftCenter: Point, topLeft: Point, topRight: Point, bottomRight: Point, bottomLeft: Point}
      * 
     */
     getActiveInfo: function() {
@@ -2107,6 +2128,10 @@ new function() { // Injection scope for various item event handlers
                 .add(corners.bottomLeft)
                 .divide(2),
             leftCenter: corners.bottomLeft.add(corners.topLeft).divide(2),
+            top: corners.topLeft.y,
+            bottom: corners.bottomLeft.y,
+            left: corners.topLeft.x,
+            right: corners.topRight.x,
         });
     },
 
@@ -3614,6 +3639,8 @@ new function() { // Injection scope for hit-test functions shared with project
 
         if(rotate) this._angle += value;
 
+        this._transformType = key;
+
         return this.transform(new Matrix()[key](value,
                 center || this.getPosition(true)));
     };
@@ -3626,6 +3653,8 @@ new function() { // Injection scope for hit-test functions shared with project
      * @param {Point} delta the offset to translate the item by
      */
     translate: function(/* delta */) {
+        this._transformType = 'translate';
+
         var mx = new Matrix();
         return this.transform(mx.translate.apply(mx, arguments));
     },
@@ -3785,6 +3814,15 @@ new function() { // Injection scope for hit-test functions shared with project
      */
 
     /**
+     * @name Item#flipped
+     * @function
+     * @returns {Boolean}
+     */
+    getFlipped: function(){
+        return this._flipped
+    },
+
+    /**
      * Transform the item.
      *
      * @param {Matrix} matrix the matrix by which the item shall be transformed
@@ -3899,6 +3937,7 @@ new function() { // Injection scope for hit-test functions shared with project
             // arbitrary transformations and we can therefore update _position:
             this._position = matrix._transformPoint(position, position);
         }
+
         // Allow chaining here, since transform() is related to Matrix functions
         return this;
     },

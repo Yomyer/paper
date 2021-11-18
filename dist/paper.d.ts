@@ -1,5 +1,5 @@
 /*!
- * Paper.js v0.12.15-info - The Swiss Army Knife of Vector Graphics Scripting.
+ * Paper.js v0.12.15-newarboards - The Swiss Army Knife of Vector Graphics Scripting.
  * http://paperjs.org/
  *
  * Copyright (c) 2011 - 2020, Jürg Lehni & Jonathan Puckey
@@ -9,7 +9,7 @@
  *
  * All rights reserved.
  *
- * Date: Tue Nov 9 18:13:53 2021 +0100
+ * Date: Wed Nov 17 17:14:12 2021 +0100
  *
  * This is an auto-generated type definition.
  */
@@ -25,16 +25,6 @@ declare namespace paper {
      * {@link Project#artboards}.
      */
     class Artboard extends Group {
-        /** 
-         * The size of the artboard.
-         */
-        size: Size
-
-        /** 
-         * The size of the artboard.
-         */
-        point: Point
-
         /** 
          * The name of the artboard.
          */
@@ -1617,6 +1607,11 @@ declare namespace paper {
          * {@link #bounds} rectangle.
          */
         position: Point
+
+        /** 
+         * The if item is constraints.
+         */
+        constraints: {horitonal: 'start' | 'end' | 'both' | 'center' | 'scale', vertical: 'start' | 'end' | 'both' | 'center' | 'scale'}
 
         /** 
          * The item's pivot point specified in the item coordinate system, defining
@@ -5160,6 +5155,12 @@ declare namespace paper {
          * and {@link #y} values. The object itself is not modified!
          */
         abs(): Point
+
+        /** 
+         * Returns a new point with the sign values of the specified {@link #x}
+         * and {@link #y} values. The object itself is not modified!
+         */
+        sign(): Point
 
         /** 
          * Returns a new point object with the smallest {@link #x} and

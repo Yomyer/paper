@@ -926,6 +926,21 @@ var Point = Base.extend(/** @lends Point# */{
      * var absPoint = point.abs();
      * console.log(absPoint); // {x: 5, y: 10}
      */
+
+    /**
+     * Returns a new point with the sign values of the specified {@link #x}
+     * and {@link #y} values. The object itself is not modified!
+     *
+     * @name Point#sign
+     * @function
+     * @return {Point}
+     *
+     * @example
+     * var point = new Point(-5, 10);
+     * var signPoint = point.sign();
+     * console.log(signPoint); // {x: -1, y: 1}
+     */
+
     statics: /** @lends Point */{
         /**
          * Returns a new point object with the smallest {@link #x} and
@@ -1026,7 +1041,7 @@ var Point = Base.extend(/** @lends Point# */{
                         * /*#=*/Numerical.TRIGONOMETRIC_EPSILON;
         }
     }
-}, Base.each(['round', 'ceil', 'floor', 'abs'], function(key) {
+}, Base.each(['round', 'ceil', 'floor', 'abs', 'sign'], function(key) {
     // Inject round, ceil, floor, abs:
     var op = Math[key];
     this[key] = function() {

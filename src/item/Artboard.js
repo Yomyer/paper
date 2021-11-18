@@ -32,6 +32,7 @@ var Artboard = Group.extend(
         _getItemsInChildrens: true,
         _serializeStyle: true,
         _item: null,
+        _transformCache: {},
         _serializeFields: {
             size: null,
             point: null,
@@ -131,6 +132,7 @@ var Artboard = Group.extend(
         },
 
         copyContent: function copyContent(source) {
+            this._item = source._item.clone();
             copyContent.base.call(this, source);
         },
 
@@ -166,19 +168,85 @@ var Artboard = Group.extend(
                 : rect;
         },
 
+        getActiveInfo: function () {
+            return this._item.getActiveInfo();
+        },
+
         transform: function tranform(
             matrix,
             _applyRecursively,
             _setApplyMatrix
         ) {
-            if(!matrix){
+            if (!matrix) {
                 return;
             }
 
             this._item.transform(matrix, _applyRecursively, _setApplyMatrix);
-            this._transformContent(matrix, _applyRecursively, _setApplyMatrix);
 
-            this._changed(Change.MATRIX);
+            tranform.base.call(
+                this,
+                matrix,
+                _applyRecursively,
+                _setApplyMatrix
+            );
+
+            // this._changed(/*#=*/ Change.MATRIX);
+        },
+
+        _transformContent: function (matrix, applyRecursively, setApplyMatrix) {
+            var children = this._children;
+            if (children) {
+                var scaling = matrix.scaling,
+                    rotation = matrix.rotation,
+                    translation = matrix.translation,
+                    isScaling = this._transformType == "scale",
+                    flipped = new Point(matrix.a, matrix.d).sign(),
+                    info = this.getActiveInfo();
+
+                var topChanged = this._transformCache.top !== info.top;
+
+                // console.log(this._transformCache.top, info.top, topChanged);
+
+                Object.assign(this._transformCache, info)
+
+                for (var i = 0, l = children.length; i < l; i++) {
+                    var item = children[i],
+                        mx = new Matrix(),
+                        horizontal = item._constraints.horizontal,
+                        vertical = item._constraints.vertical;
+
+                    if (isScaling) {
+                        if (horizontal == "scale") {
+                            var flipped = new Point(matrix.a, matrix.d).sign();
+                            mx.translate(translation.x, 0)
+                                .scale(scaling.x, flipped.x)
+                                .rotate(flipped.x === -1 && -180);
+                        }
+
+                        console.log(this.pivot)
+                        if (vertical == "start") {
+                            var heighDiff =
+                                info.height / matrix.d - info.height;
+
+                            mx/*.translate(
+                                0,
+                                heighDiff
+                            ).*/.scale(
+                                1,
+                                flipped.y,
+                                this.pivot
+                            , item.position);
+                        }
+                    } else {
+                        mx = matrix;
+                    }
+
+                    // console.log(mx.scaling, mx.translation, mx.rotation)
+
+                    item.transform(mx, applyRecursively, setApplyMatrix);
+                }
+                return true;
+            }
         },
 
         _hitTestChildren: function _hitTestChildren(
@@ -197,7 +265,28 @@ var Artboard = Group.extend(
             }
 
             if (options.legacy || this._actived || !this._children.length) {
-                
+                if (
+                    this._item._hitTest(
+                        point,
+                        Base.set(Object.assign({}, options), { all: null })
+                    )
+                ) {
+                    var hit = new HitResult("fill", this);
+                    var match = options.match;
+
+                    if (match && !match(hit)) {
+                        hit = null;
+                    }
+
+                    if (options.legacy) {
+                        hitTestChildren();
+                    }
+
+                    if (hit && options.all) {
+                        options.all.push(hit);
+                    }
+                    return hit;
+                }
                 return hitTestChildren();
             } else {
                 return hitTestChildren();
@@ -235,7 +324,7 @@ var Artboard = Group.extend(
         },
 
         _drawClip: function (ctx, param) {
-            if (this.getClipped()) {
+            /*if (this.getClipped()) {
                 var size = this._size,
                     point = this._point;
 
@@ -250,7 +339,7 @@ var Artboard = Group.extend(
                 clipItem.draw(ctx, param.extend({ clip: true }));
 
                 clipItem.remove();
-            }
+            }*/
         },
 
         _drawChildren: function (ctx, param) {
