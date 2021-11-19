@@ -74,9 +74,10 @@ var Item = Base.extend(Emitter, /** @lends Item# */{
     _selectChildren: false,
     _serializeStyle: true,
     _flipped: {x:false, y: false},
+    _constraintsPivot: null,
     _constraints: {
         horizontal: 'scale', 
-        vertical: 'start'
+        vertical: 'both'
     },
     // Provide information about fields to be serialized, with their defaults
     // that can be omitted.
@@ -885,6 +886,20 @@ new function() { // Injection scope for various item event handlers
     
     setConstraints(constraints){
         return this._constraints = constraints
+    },
+
+    /**
+     * The if item is constraints.
+     *
+     * @name Item#constraintsPivot
+     * @type Point
+     */
+    getConstraintsPivot(){
+        return this._constraintsPivot
+    },
+    
+    setConstraintsPivot(/* point */){
+        return this._constraintsPivot = Point.read(arguments)
     },
 
 
@@ -3632,12 +3647,14 @@ new function() { // Injection scope for hit-test functions shared with project
      */
 }, Base.each(['rotate', 'scale', 'shear', 'skew'], function(key) {
     var rotate = key === 'rotate';
+    var scale = key === 'scale';
     this[key] = function(/* value, center */) {
         var args = arguments,
             value = (rotate ? Base : Point).read(args),
             center = Point.read(args, 0, { readNull: true });
 
         if(rotate) this._angle += value;
+        if(scale) this._constraintsPivot = center || this.getPosition(true)
 
         this._transformType = key;
 

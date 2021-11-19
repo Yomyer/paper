@@ -168,10 +168,6 @@ var Artboard = Group.extend(
                 : rect;
         },
 
-        getActiveInfo: function () {
-            return this._item.getActiveInfo();
-        },
-
         transform: function tranform(
             matrix,
             _applyRecursively,
@@ -190,7 +186,7 @@ var Artboard = Group.extend(
                 _setApplyMatrix
             );
 
-            // this._changed(/*#=*/ Change.MATRIX);
+            this._changed(/*#=*/ Change.MATRIX);
         },
 
         _transformContent: function (matrix, applyRecursively, setApplyMatrix) {
@@ -201,41 +197,71 @@ var Artboard = Group.extend(
                     translation = matrix.translation,
                     isScaling = this._transformType == "scale",
                     flipped = new Point(matrix.a, matrix.d).sign(),
-                    info = this.getActiveInfo();
-
-                var topChanged = this._transformCache.top !== info.top;
-
-                // console.log(this._transformCache.top, info.top, topChanged);
-
-                Object.assign(this._transformCache, info)
+                    info = this._item.getActiveInfo(),
+                    diff = new Size(
+                        0,
+                        info.height / matrix.d - info.height * flipped.y
+                    );
 
                 for (var i = 0, l = children.length; i < l; i++) {
                     var item = children[i],
                         mx = new Matrix(),
                         horizontal = item._constraints.horizontal,
-                        vertical = item._constraints.vertical;
+                        vertical = item._constraints.vertical,
+                        size = new Size(item.getActiveInfo()),
+                        itemScale = size.add(diff).divide(size);
+
 
                     if (isScaling) {
+                        var top =
+                            info.center.y < this._constraintsPivot.y ==
+                            (flipped.y != -1);
+
+                        var bottom =
+                            info.center.y > this._constraintsPivot.y ==
+                            (flipped.y != -1);
+
                         if (horizontal == "scale") {
                             var flipped = new Point(matrix.a, matrix.d).sign();
-                            mx.translate(translation.x, 0)
-                                .scale(scaling.x, flipped.x)
-                                .rotate(flipped.x === -1 && -180);
+                            mx.translate(translation.x, 0).scale(scaling.x, 1);
+                            // .rotate(flipped.x === -1 && -180);
                         }
 
-                        console.log(this.pivot)
-                        if (vertical == "start") {
-                            var heighDiff =
-                                info.height / matrix.d - info.height;
+                        if (vertical == "scale") {
+                            mx.translate(0, translation.y).scale(1, scaling.y);
+                        }
 
-                            mx/*.translate(
-                                0,
-                                heighDiff
-                            ).*/.scale(
+                        if (vertical == "start") {
+                            mx.translate(0, top ? diff.height : 0).scale(
                                 1,
                                 flipped.y,
-                                this.pivot
-                            , item.position);
+                                this._constraintsPivot
+                            );
+                        }
+
+                        if (vertical == "end") {
+                            mx.translate(0, bottom ? -diff.height : 0).scale(
+                                1,
+                                flipped.y,
+                                this._constraintsPivot
+                            );
+                        }
+
+                        if (vertical == "center") {
+                            mx.translate(
+                                0,
+                                top ? diff.height / 2 : -diff.height / 2
+                            ).scale(1, flipped.y, this._constraintsPivot);
+                        }
+                        if (vertical == "both") {
+                            console.log(itemScale);
+                            mx.scale(
+                                itemScale,
+                                item.getActiveInfo().topCenter
+                            ).scale(
+                                scaling,
+                                item.getActiveInfo().topCenter
+                            )
                         }
                     } else {
                         mx = matrix;

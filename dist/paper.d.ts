@@ -9,7 +9,7 @@
  *
  * All rights reserved.
  *
- * Date: Wed Nov 17 17:14:12 2021 +0100
+ * Date: Thu Nov 18 18:22:45 2021 +0100
  *
  * This is an auto-generated type definition.
  */
@@ -1614,6 +1614,11 @@ declare namespace paper {
         constraints: {horitonal: 'start' | 'end' | 'both' | 'center' | 'scale', vertical: 'start' | 'end' | 'both' | 'center' | 'scale'}
 
         /** 
+         * The if item is constraints.
+         */
+        constraintsPivot: Point
+
+        /** 
          * The item's pivot point specified in the item coordinate system, defining
          * the point around which all transformations are hinging. This is also the
          * reference point for {@link #position}. By default, it is set to `null`,
@@ -1771,7 +1776,7 @@ declare namespace paper {
         /** 
          * The info of active object
          */
-        activeInfo: {angle: number, width: number, height: number, center: Point, topCenter: Point, rightCenter: Point, bottomCenter: Point, leftCenter: Point, topLeft: Point, topRight: Point, bottomRight: Point, bottomLeft: Point}
+        activeInfo: {angle: number, width: number, height: number, top: number, left: number, rigth: number, bottom: number, center: Point, topCenter: Point, rightCenter: Point, bottomCenter: Point, leftCenter: Point, topLeft: Point, topRight: Point, bottomRight: Point, bottomLeft: Point}
 
         /** 
          * The color of the stroke.
@@ -2661,6 +2666,9 @@ declare namespace paper {
          * @param ver - the vertical sskew angle in degrees
          */
         skew(hor: number, ver: number, center?: Point): void
+
+        
+        flipped(): boolean
 
         /** 
          * Transform the item.

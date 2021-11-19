@@ -9,7 +9,7 @@
  *
  * All rights reserved.
  *
- * Date: Wed Nov 17 17:14:12 2021 +0100
+ * Date: Thu Nov 18 18:22:45 2021 +0100
  *
  ***
  *
@@ -3512,9 +3512,10 @@ var Item = Base.extend(Emitter, {
 	_selectChildren: false,
 	_serializeStyle: true,
 	_flipped: {x:false, y: false},
+	_constraintsPivot: null,
 	_constraints: {
 		horizontal: 'scale',
-		vertical: 'start'
+		vertical: 'both'
 	},
 	_serializeFields: {
 		name: null,
@@ -3846,6 +3847,13 @@ new function() {
 	},
 	setConstraints(constraints){
 		return this._constraints = constraints
+	},
+
+	getConstraintsPivot(){
+		return this._constraintsPivot
+	},
+	setConstraintsPivot(){
+		return this._constraintsPivot = Point.read(arguments)
 	},
 
 	_getPositionFromBounds: function(bounds) {
@@ -4462,7 +4470,11 @@ new function() {
 			bottomCenter: corners.bottomRight
 				.add(corners.bottomLeft)
 				.divide(2),
-			leftCenter: corners.bottomLeft.add(corners.topLeft).divide(2)
+			leftCenter: corners.bottomLeft.add(corners.topLeft).divide(2),
+			top: corners.topLeft.y,
+			bottom: corners.bottomLeft.y,
+			left: corners.topLeft.x,
+			right: corners.topRight.x,
 		});
 	},
 
@@ -5049,12 +5061,14 @@ new function() {
 
 }, Base.each(['rotate', 'scale', 'shear', 'skew'], function(key) {
 	var rotate = key === 'rotate';
+	var scale = key === 'scale';
 	this[key] = function() {
 		var args = arguments,
 			value = (rotate ? Base : Point).read(args),
 			center = Point.read(args, 0, { readNull: true });
 
 		if(rotate) this._angle += value;
+		if(scale) this._constraintsPivot = center || this.getPosition(true)
 
 		this._transformType = key;
 
@@ -5672,10 +5686,6 @@ var Artboard = Group.extend(
 				: rect;
 		},
 
-		getActiveInfo: function () {
-			return this._item.getActiveInfo();
-		},
-
 		transform: function tranform(
 			matrix,
 			_applyRecursively,
@@ -5694,6 +5704,89 @@ var Artboard = Group.extend(
 				_setApplyMatrix
 			);
 
+			this._changed(25);
+		},
+
+		_transformContent: function (matrix, applyRecursively, setApplyMatrix) {
+			var children = this._children;
+			if (children) {
+				var scaling = matrix.scaling,
+					rotation = matrix.rotation,
+					translation = matrix.translation,
+					isScaling = this._transformType == "scale",
+					flipped = new Point(matrix.a, matrix.d).sign(),
+					info = this._item.getActiveInfo(),
+					diff = new Size(
+						0,
+						info.height / matrix.d - info.height * flipped.y
+					);
+
+				for (var i = 0, l = children.length; i < l; i++) {
+					var item = children[i],
+						mx = new Matrix(),
+						horizontal = item._constraints.horizontal,
+						vertical = item._constraints.vertical,
+						size = new Size(item.getActiveInfo()),
+						itemScale = size.add(diff).divide(size);
+
+					if (isScaling) {
+						var top =
+							info.center.y < this._constraintsPivot.y ==
+							(flipped.y != -1);
+
+						var bottom =
+							info.center.y > this._constraintsPivot.y ==
+							(flipped.y != -1);
+
+						if (horizontal == "scale") {
+							var flipped = new Point(matrix.a, matrix.d).sign();
+							mx.translate(translation.x, 0).scale(scaling.x, 1);
+						}
+
+						if (vertical == "scale") {
+							mx.translate(0, translation.y).scale(1, scaling.y);
+						}
+
+						if (vertical == "start") {
+							mx.translate(0, top ? diff.height : 0).scale(
+								1,
+								flipped.y,
+								this._constraintsPivot
+							);
+						}
+
+						if (vertical == "end") {
+							mx.translate(0, bottom ? -diff.height : 0).scale(
+								1,
+								flipped.y,
+								this._constraintsPivot
+							);
+						}
+
+						if (vertical == "center") {
+							mx.translate(
+								0,
+								top ? diff.height / 2 : -diff.height / 2
+							).scale(1, flipped.y, this._constraintsPivot);
+						}
+						if (vertical == "both") {
+							console.log(itemScale);
+							mx.scale(
+								itemScale,
+								item.getActiveInfo().topCenter
+							).scale(
+								scaling,
+								item.getActiveInfo().topCenter
+							)
+						}
+					} else {
+						mx = matrix;
+					}
+
+					item.transform(mx, applyRecursively, setApplyMatrix);
+				}
+				return true;
+			}
 		},
 
 		_hitTestChildren: function _hitTestChildren(
