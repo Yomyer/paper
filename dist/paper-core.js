@@ -9,7 +9,7 @@
  *
  * All rights reserved.
  *
- * Date: Thu Nov 18 18:22:45 2021 +0100
+ * Date: Fri Nov 19 19:34:20 2021 +0100
  *
  ***
  *
@@ -938,6 +938,14 @@ var PaperScope = Base.extend({
 	},
 
 	 off: function(eventName, handler){
+		if (eventName instanceof Array) {
+			for (var key in eventName) {
+				this.off(eventName[key], handler);
+			}
+
+			return;
+		}
+
 		if (!this._eventListeners) {
 			return this;
 		}
@@ -957,6 +965,18 @@ var PaperScope = Base.extend({
 
 	fire: function(eventName, options){
 		if (!this._eventListeners) return this;
+
+		if (eventName instanceof Array) {
+			for (var key in eventName) {
+				this.fire(eventName[key], options);
+			}
+
+			return;
+		}
+
+		if(!options){
+			options = {};
+		}
 
 		if (options && !options.items) {
 			options.items = this.project.getActiveItems();
@@ -3100,6 +3120,7 @@ var Project = PaperScopeItem.extend(
 		_compactSerialize: true,
 		_insertMode: false,
 		_activeItems: [],
+		_highlightedItem: null,
 		_mainTool: null,
 		_artboards: [],
 		_controls: null,
@@ -3234,8 +3255,27 @@ var Project = PaperScopeItem.extend(
 		},
 
 		setActiveItems: function (items) {
-			this._activeItems = items;
-			this._changed(1048576);
+			this.deactivateAll();
+
+			if (items && items.length) {
+				for (var i = 0, l = items.length; i < l; i++)
+					items[i].setActived(true);
+			}
+		},
+
+		getHighlightedItem: function () {
+			return this._highlightedItem;
+		},
+
+		setHighlightedItem: function (item) {
+			this.clearHighlightedItem(item);
+		},
+
+		clearHighlightedItem: function (item) {
+			if (this._highlightedItem)
+				this._highlightedItem._highlighted = false;
+
+			this._highlightedItem = item && null;
 		},
 
 		getSymbolDefinitions: function () {
@@ -3455,6 +3495,12 @@ var Project = PaperScopeItem.extend(
 				ctx.restore();
 			}
 
+			if (this._highlightedItem) {
+				ctx.save();
+				this._highlightedItem._drawHighlight(ctx, matrix, pixelRatio);
+				ctx.restore();
+			}
+
 			if (this._grid) {
 				ctx.save();
 				matrix.applyToContext(ctx);
@@ -3503,6 +3549,7 @@ var Item = Base.extend(Emitter, {
 	_angle: 0,
 	_blocked: false,
 	_actived: false,
+	_highlighted: false,
 	_clipMask: false,
 	_selection: 0,
 	_selectionCache: null,
@@ -3513,10 +3560,7 @@ var Item = Base.extend(Emitter, {
 	_serializeStyle: true,
 	_flipped: {x:false, y: false},
 	_constraintsPivot: null,
-	_constraints: {
-		horizontal: 'scale',
-		vertical: 'both'
-	},
+	_constraints: {},
 	_serializeFields: {
 		name: null,
 		applyMatrix: null,
@@ -3532,7 +3576,8 @@ var Item = Base.extend(Emitter, {
 		data: {},
 		uid: null,
 		angle: 0,
-		actived: false
+		actived: false,
+		constraints: {}
 	},
 	_prioritize: ['applyMatrix']
 },
@@ -3630,14 +3675,14 @@ new function() {
 		var symbol = this._symbol,
 			cacheParent = this._parent || symbol,
 			project = this._project;
-		if (flags & 8) {
+		if (flags & 1048584) {
 			this._bounds = this._position = this._decomposed = this._activeInfo = undefined;
 		}
 		if (flags & 16) {
 			this._globalMatrix = undefined;
 		}
 		if (cacheParent
-				&& (flags & 72)) {
+				&& (flags & 1048648)) {
 			Item._clearBoundsCache(cacheParent);
 		}
 		if (flags & 2) {
@@ -3703,13 +3748,23 @@ new function() {
 		this._angle = angle;
 	},
 
-	getInheritAngle: function(){
+	getInheritedAngle: function(){
 		var angle = this._angle;
 		if(this._parent){
-			angle += this._parent.getInheritAngle()
+			angle += this._parent.getInheritedAngle();
 		}
 
 		return angle;
+	},
+
+	getArtboard: function(){
+		var artboard = null;
+
+		if(this._parent instanceof Item){
+			artboard = this._parent instanceof Artboard ? this.parent : this.parent.getArtboard();
+		}
+
+		return artboard;
 	},
 
 	getBlocked: function(){
@@ -3842,18 +3897,18 @@ new function() {
 		this.translate(Point.read(arguments).subtract(this.getPosition(true)));
 	},
 
-	getConstraints(){
-		return this._constraints
+	getConstraints: function(){
+		return this._constraints;
 	},
-	setConstraints(constraints){
-		return this._constraints = constraints
+	setConstraints: function(constraints){
+		return this._constraints = constraints;
 	},
 
-	getConstraintsPivot(){
-		return this._constraintsPivot
+	getConstraintsPivot: function(){
+		return this._constraintsPivot;
 	},
-	setConstraintsPivot(){
-		return this._constraintsPivot = Point.read(arguments)
+	setConstraintsPivot: function(){
+		return this._constraintsPivot = Point.read(arguments);
 	},
 
 	_getPositionFromBounds: function(bounds) {
@@ -3933,7 +3988,7 @@ new function() {
 		return [
 			options.stroke ? 1 : 0,
 			options.handle ? 1 : 0,
-			options.drawing ? 1 : 0,
+			options.hit ? 1 : 0,
 			internal ? 1 : 0
 		].join('');
 	},
@@ -4001,7 +4056,7 @@ new function() {
 		_clearBoundsCache: function(item) {
 			var cache = item._boundsCache;
 			if (cache) {
-				item._bounds = item._position = item._boundsCache = undefined;
+				item._bounds = item._position = item._boundsCache = item._activeInfo = undefined;
 				for (var i = 0, list = cache.list, l = list.length; i < l; i++){
 					var other = list[i];
 					if (other !== item) {
@@ -4285,6 +4340,7 @@ new function() {
 		if(options && options.keep){
 			copy._uid = this._uid;
 		}
+		copy.angle = this.angle;
 
 		return copy;
 	},
@@ -4421,12 +4477,47 @@ new function() {
 			for (var i = 0, l = children.length; i < l; i++)
 				children[i].setActived(false);
 		}
+		this.setHighlighted(false);
 
 		this._changed(1048577);
 	},
 
+	getHighlighted: function(){
+		return this._highlighted;
+	},
+
+	setHighlighted: function(highlighted){
+		if(this._highlighted == highlighted)
+			return;
+		this._highlighted = highlighted;
+
+		if(this._project._highlightedItem)
+			this._project._highlightedItem._highlighted = false;
+
+		this._project._highlightedItem = highlighted ? this : null;
+
+		this._changed(257);
+	},
+
+	getActiveItems: function(){
+		var children = this._children,
+			activedItems = [];
+
+		if(children){
+			for (var i = 0, l = children.length; i < l; i++) {
+				var item = children[i];
+				if (item.actived){
+					activedItems.push(item);
+				}
+				activedItems = activedItems.concat(item.getActiveItems());
+			}
+		}
+
+		return activedItems;
+	},
+
 	getCorners: function(unrotated) {
-		var angle = this.getInheritAngle();
+		var angle = this.getInheritedAngle();
 		var bounds = this.bounds;
 		var center =  this.bounds.center;
 
@@ -4460,6 +4551,7 @@ new function() {
 
 		return this._activeInfo = Base.set(corners, {
 			angle: this.angle,
+			inheritedAngle: this.inheritedAngle,
 			width: corners.topLeft.subtract(corners.topRight).length,
 			height: corners.topLeft.subtract(corners.bottomLeft).length,
 			center: corners.topLeft.add(corners.bottomRight).divide(2),
@@ -4610,7 +4702,6 @@ new function() {
 			}
 			res = filter(res);
 		}
-
 		if (!res) {
 			res = this._hitTestChildren(point, options, viewMatrix)
 				|| checkSelf
@@ -4721,10 +4812,13 @@ new function() {
 				rect = param.rect;
 			matrix = rect && (matrix || new Matrix());
 
+			param.children = [];
+
 			for (var i = 0, l = children && children.length; i < l; i++) {
 				var child = children[i],
 					childMatrix = matrix && matrix.appended(child._matrix),
-					add = true;
+					add = true,
+					group = child._class == 'Group';
 				if (rect) {
 					var bounds = child.getBounds(childMatrix);
 
@@ -4735,6 +4829,7 @@ new function() {
 								|| param.path.intersects(child, childMatrix))))
 						add = false;
 				}
+
 				if (add && child.matches(options)) {
 					items.push(child);
 					if (firstOnly)
@@ -4743,6 +4838,7 @@ new function() {
 				if (param.recursive !== false || child._getItemsInChildrens) {
 					_getItems(child, options, childMatrix, param, firstOnly);
 				}
+
 				if (firstOnly && items.length > 0)
 					break;
 			}
@@ -4761,6 +4857,9 @@ new function() {
 	},
 
 	insertChild: function(index, item) {
+		if(item.inheritedAngle){
+			item._angle = item.inheritedAngle - this.inheritedAngle ;
+		}
 		var res = item ? this.insertChildren(index, [item]) : null;
 		return res && res[0];
 	},
@@ -4896,9 +4995,13 @@ new function() {
 			index = this._index;
 		if (this._style)
 			this._style._dispose();
+
 		if (owner) {
 			if (this._name)
 				this._removeNamed();
+
+			this.setActived(false);
+			this.setHighlighted(false);
 			if (index != null) {
 				if (project._activeLayer === this)
 					project._activeLayer = this.getNextSibling()
@@ -5068,7 +5171,7 @@ new function() {
 			center = Point.read(args, 0, { readNull: true });
 
 		if(rotate) this._angle += value;
-		if(scale) this._constraintsPivot = center || this.getPosition(true)
+		if(scale) this._constraintsPivot = center || this.getPosition(true);
 
 		this._transformType = key;
 
@@ -5084,7 +5187,7 @@ new function() {
 	},
 
 	getFlipped: function(){
-		return this._flipped
+		return this._flipped;
 	},
 
 	transform: function(matrix, _applyRecursively, _setApplyMatrix, _skypChanges) {
@@ -5395,6 +5498,40 @@ new function() {
 		}
 	},
 
+	_drawHighlight: function(ctx, matrix, pixelRatio) {
+		if(this.getActived()){
+			return;
+		}
+
+		matrix.applyToContext(ctx);
+
+		var param = new Base({
+			offset: new Point(0, 0),
+			pixelRatio: pixelRatio,
+			viewMatrix: matrix.isIdentity() ? null : matrix,
+			matrices: [new Matrix()],
+			updateMatrix: true,
+		});
+		item = this._getHigthlightItem();
+		item.set({
+			insert: false,
+			strokeColor: "rgba(0, 142, 252, 1)",
+			strokeWidth: 2 / this._project._view.getZoom(),
+		});
+
+		item.draw(ctx, param);
+		item.remove();
+	},
+
+	_getHigthlightItem: function() {
+		var info = this.getActiveInfo();
+		return new Path.Rectangle({
+			position: info.center,
+			size: info,
+			rotation: info.inheritedAngle
+		});
+	},
+
 	_canComposite: function() {
 		return false;
 	}
@@ -5456,88 +5593,139 @@ new function() {
 	}
 });
 
-var Group = Item.extend({
-	_class: 'Group',
-	_selectBounds: false,
-	_selectChildren: true,
-	_serializeStyle: false,
-	_serializeFields: {
-		children: []
-	},
+var Group = Item.extend(
+	 {
+		_class: "Group",
+		_selectBounds: false,
+		_selectChildren: true,
+		_serializeStyle: false,
+		_serializeFields: {
+			children: [],
+		},
 
-	initialize: function Group(arg) {
-		this._children = [];
-		this._namedChildren = {};
-		if (!this._initialize(arg))
-			this.addChildren(Array.isArray(arg) ? arg : arguments);
-	},
+		initialize: function Group(arg) {
+			this._children = [];
+			this._namedChildren = {};
+			if (!this._initialize(arg))
+				this.addChildren(Array.isArray(arg) ? arg : arguments);
+		},
 
-	_changed: function _changed(flags, _skipProject) {
-		_changed.base.call(this, flags, _skipProject);
-		if (flags & 2050) {
-			this._clipItem = undefined;
-		}
-	},
+		_changed: function _changed(flags, _skipProject) {
+			_changed.base.call(this, flags, _skipProject);
+			if (flags & 2050) {
+				this._clipItem = undefined;
+			}
+		},
 
-	_getClipItem: function() {
-		var clipItem = this._clipItem;
-		if (clipItem === undefined) {
-			clipItem = null;
-			var children = this._children;
-			for (var i = 0, l = children.length; i < l; i++) {
-				if (children[i]._clipMask) {
-					clipItem = children[i];
-					break;
+		_getClipItem: function () {
+			var clipItem = this._clipItem;
+			if (clipItem === undefined) {
+				clipItem = null;
+				var children = this._children;
+				for (var i = 0, l = children.length; i < l; i++) {
+					if (children[i]._clipMask) {
+						clipItem = children[i];
+						break;
+					}
+				}
+				this._clipItem = clipItem;
+			}
+			return clipItem;
+		},
+
+		isClipped: function () {
+			return !!this._getClipItem();
+		},
+
+		setClipped: function (clipped) {
+			var child = this.getFirstChild();
+			if (child) child.setClipMask(clipped);
+		},
+
+		hasFill: function () {
+			return true;
+		},
+
+		_getBounds: function _getBounds(matrix, options) {
+			var clipItem = this._getClipItem();
+			return clipItem
+				? clipItem._getCachedBounds(
+					  clipItem._matrix.prepended(matrix),
+					  Base.set({}, options, { stroke: false })
+				  )
+				: _getBounds.base.call(this, matrix, options);
+		},
+
+		_hitTest: function _hitTest(point, options, parentViewMatrix) {
+			var hit = _hitTest.base.call(
+				this,
+				point,
+				options,
+				parentViewMatrix
+			);
+
+			var all = options.all;
+
+			if (
+				this._class == "Group" &&
+				!options.legacy &&
+				hit &&
+				all &&
+				all.length &&
+				!this.getActiveItems().length
+			) {
+				var index = -1;
+				for (var i = 0; i < all.length; i++) {
+					if (this.children.includes(all[i].item) && index < i) {
+						index = i;
+						break;
+					}
+				}
+
+				if (index !== -1) {
+					options.all.splice(index, 0, new HitResult("fill", this));
 				}
 			}
-			this._clipItem = clipItem;
-		}
-		return clipItem;
-	},
 
-	isClipped: function() {
-		return !!this._getClipItem();
-	},
+			return hit;
+		},
 
-	setClipped: function(clipped) {
-		var child = this.getFirstChild();
-		if (child)
-			child.setClipMask(clipped);
-	},
+		_hitTestChildren: function _hitTestChildren(
+			point,
+			options,
+			viewMatrix
+		) {
+			var clipItem = this._getClipItem();
+			return (
+				(!clipItem || clipItem.contains(point)) &&
+				_hitTestChildren.base.call(
+					this,
+					point,
+					options,
+					viewMatrix,
+					clipItem
+				)
+			);
+		},
 
-	_getBounds: function _getBounds(matrix, options) {
-		var clipItem = this._getClipItem();
-		return clipItem
-			? clipItem._getCachedBounds(clipItem._matrix.prepended(matrix),
-				Base.set({}, options, { stroke: false }))
-			: _getBounds.base.call(this, matrix, options);
-	},
-
-	_hitTestChildren: function _hitTestChildren(point, options, viewMatrix) {
-		var clipItem = this._getClipItem();
-		return (!clipItem || clipItem.contains(point))
-				&& _hitTestChildren.base.call(this, point, options, viewMatrix,
-					clipItem);
-	},
-
-	_draw: function(ctx, param) {
-		var clip = param.clip,
-			clipItem = !clip && this._getClipItem();
-		param = param.extend({ clipItem: clipItem, clip: false });
-		if (clip) {
-			ctx.beginPath();
-			param.dontStart = param.dontFinish = true;
-		} else if (clipItem) {
-			clipItem.draw(ctx, param.extend({ clip: true }));
-		}
-		var children = this._children;
-		for (var i = 0, l = children.length; i < l; i++) {
-			var item = children[i];
-			if (item !== clipItem)
-				item.draw(ctx, param);
-		}
+		_draw: function (ctx, param) {
+			var clip = param.clip,
+				clipItem = !clip && this._getClipItem();
+			param = param.extend({ clipItem: clipItem, clip: false });
+			if (clip) {
+				ctx.beginPath();
+				param.dontStart = param.dontFinish = true;
+			} else if (clipItem) {
+				clipItem.draw(ctx, param.extend({ clip: true }));
+			}
+			var children = this._children;
+			for (var i = 0, l = children.length; i < l; i++) {
+				var item = children[i];
+				if (item !== clipItem) item.draw(ctx, param);
+			}
+		},
 	}
-});
+);
 
 var Layer = Group.extend({
 	_class: 'Layer',
@@ -5568,10 +5756,10 @@ var Artboard = Group.extend(
 		_applyChildrenStyle: false,
 		_selectBounds: true,
 		_selectChildren: false,
-		_drawing: false,
+		_getBackgroundsInChildrens: true,
 		_getItemsInChildrens: true,
 		_serializeStyle: true,
-		_item: null,
+		_background: null,
 		_transformCache: {},
 		_serializeFields: {
 			size: null,
@@ -5586,7 +5774,7 @@ var Artboard = Group.extend(
 			this._children = [];
 			this._namedChildren = {};
 
-			this.setItem(args[0]);
+			this.setBackground(args[0]);
 
 			if (!this._initialize(args[0])) {
 				this.addChildren(Array.isArray(args) ? args : arguments);
@@ -5599,11 +5787,11 @@ var Artboard = Group.extend(
 			return this._parent || (this._index != null && this._project);
 		},
 
-		getItem: function () {
-			return this._item;
+		getBackground: function () {
+			return this._background;
 		},
 
-		setItem: function (args) {
+		setBackground: function (args) {
 			var args = Base.set(Object.assign({}, args), {
 				insert: false,
 				children: undefined,
@@ -5611,7 +5799,7 @@ var Artboard = Group.extend(
 				actived: false,
 			});
 
-			this._item = new Shape.Rectangle(args);
+			this._background = new Shape.Rectangle(args);
 		},
 
 		getName: function () {
@@ -5628,6 +5816,7 @@ var Artboard = Group.extend(
 
 		setClipped: function (clipped) {
 			this._clipped = clipped;
+			this._getItemsInChildrens = !clipped;
 		},
 
 		getActived: function () {
@@ -5650,30 +5839,22 @@ var Artboard = Group.extend(
 		},
 
 		copyContent: function copyContent(source) {
-			this._item = source._item.clone();
+			this._background = source._background.clone();
+			this._clipped = source._clipped;
 			copyContent.base.call(this, source);
 		},
 
 		getStrokeBounds: function (matrix) {
-			return this.getBounds(matrix, {
-				drawing: this._drawing,
-			});
+			return this.getBounds(matrix);
 		},
 
 		_getBounds: function (matrix, options) {
-			var rect = this._item.bounds,
+			var rect = this._background.bounds,
 				style = this._style,
 				strokeWidth =
 					options.stroke &&
 					style.hasStroke() &&
 					style.getStrokeWidth();
-
-			if (options.drawing && !this._clipped) {
-				var children = this._children;
-				for (var i = 0, l = children.length; i < l; i++) {
-					rect = rect.unite(children[i].bounds);
-				}
-			}
 
 			if (matrix) rect = matrix._transformBounds(rect);
 			return strokeWidth
@@ -5695,7 +5876,11 @@ var Artboard = Group.extend(
 				return;
 			}
 
-			this._item.transform(matrix, _applyRecursively, _setApplyMatrix);
+			this._background.transform(
+				matrix,
+				_applyRecursively,
+				_setApplyMatrix
+			);
 
 			tranform.base.call(
 				this,
@@ -5708,76 +5893,130 @@ var Artboard = Group.extend(
 		},
 
 		_transformContent: function (matrix, applyRecursively, setApplyMatrix) {
-			var children = this._children;
+			return this._applyConstraints(
+				this._children,
+				matrix,
+				applyRecursively,
+				setApplyMatrix
+			);
+		},
+
+		_applyConstraints: function(children, matrix, applyRecursively, setApplyMatrix) {
 			if (children) {
 				var scaling = matrix.scaling,
-					rotation = matrix.rotation,
 					translation = matrix.translation,
 					isScaling = this._transformType == "scale",
 					flipped = new Point(matrix.a, matrix.d).sign(),
-					info = this._item.getActiveInfo(),
-					diff = new Size(
-						0,
-						info.height / matrix.d - info.height * flipped.y
-					);
+					info = this._background.getActiveInfo(),
+					diff = new Size(info)
+						.divide(matrix.a, matrix.d)
+						.subtract(new Size(info).multiply(flipped));
 
 				for (var i = 0, l = children.length; i < l; i++) {
 					var item = children[i],
 						mx = new Matrix(),
 						horizontal = item._constraints.horizontal,
 						vertical = item._constraints.vertical,
-						size = new Size(item.getActiveInfo()),
-						itemScale = size.add(diff).divide(size);
+						size = new Size(item.bounds),
+						itemScale = new Point(info)
+							.subtract(
+								new Point(info)
+									.divide(matrix.a, matrix.d)
+									.multiply(flipped)
+									.subtract(size)
+							)
+							.divide(size);
 
 					if (isScaling) {
 						var top =
-							info.center.y < this._constraintsPivot.y ==
-							(flipped.y != -1);
-
-						var bottom =
 							info.center.y > this._constraintsPivot.y ==
 							(flipped.y != -1);
+						left =
+							info.center.x > this._constraintsPivot.x ==
+							(flipped.x != -1);
 
-						if (horizontal == "scale") {
-							var flipped = new Point(matrix.a, matrix.d).sign();
-							mx.translate(translation.x, 0).scale(scaling.x, 1);
+						switch (horizontal) {
+							case "scale":
+								mx.translate(translation.x, 0).scale(
+									scaling.x,
+									1
+								);
+								break;
+							case "end":
+								mx.translate(left ? -diff.width : 0, 0).scale(
+									flipped.x,
+									1,
+									this._constraintsPivot
+								);
+								break;
+							case "center":
+								mx.translate(
+									left ? -diff.width / 2 : diff.width / 2,
+									0
+								).scale(flipped.x, 1, this._constraintsPivot);
+								break;
+							case "both":
+								mx.scale(
+									flipped.x,
+									1,
+									this._constraintsPivot
+								).scale(
+									itemScale.x,
+									1,
+									left
+										? item.bounds.leftCenter
+										: item.bounds.rightCenter
+								);
+								break;
+							default:
+								mx.translate(left ? 0 : diff.width, 0).scale(
+									flipped.x,
+									1,
+									this._constraintsPivot
+								);
+								break;
 						}
 
-						if (vertical == "scale") {
-							mx.translate(0, translation.y).scale(1, scaling.y);
-						}
-
-						if (vertical == "start") {
-							mx.translate(0, top ? diff.height : 0).scale(
-								1,
-								flipped.y,
-								this._constraintsPivot
-							);
-						}
-
-						if (vertical == "end") {
-							mx.translate(0, bottom ? -diff.height : 0).scale(
-								1,
-								flipped.y,
-								this._constraintsPivot
-							);
-						}
-
-						if (vertical == "center") {
-							mx.translate(
-								0,
-								top ? diff.height / 2 : -diff.height / 2
-							).scale(1, flipped.y, this._constraintsPivot);
-						}
-						if (vertical == "both") {
-							console.log(itemScale);
-							mx.scale(
-								itemScale,
-								item.getActiveInfo().topCenter
-							).scale(
-								scaling,
-								item.getActiveInfo().topCenter
-							)
+						switch (vertical) {
+							case "scale":
+								mx.translate(0, translation.y).scale(
+									1,
+									scaling.y
+								);
+								break;
+							case "end":
+								mx.translate(0, top ? -diff.height : 0).scale(
+									1,
+									flipped.y,
+									this._constraintsPivot
+								);
+								break;
+							case "center":
+								mx.translate(
+									0,
+									top ? -diff.height / 2 : diff.height / 2
+								).scale(1, flipped.y, this._constraintsPivot);
+								break;
+							case "both":
+								mx.scale(
+									1,
+									flipped.y,
+									this._constraintsPivot
+								).scale(
+									1,
+									itemScale.y,
+									top
+										? item.bounds.topCenter
+										: item.bounds.bottomCenter
+								);
+								break;
+							default:
+								mx.translate(0, top ? 0 : diff.height).scale(
+									1,
+									flipped.y,
+									this._constraintsPivot
+								);
+								break;
 						}
 					} else {
 						mx = matrix;
@@ -5789,12 +6028,54 @@ var Artboard = Group.extend(
 			}
 		},
 
+		isClipped: function () {
+			return this.getClipped();
+		},
+
+		_getClipItem: function () {
+			return this.isClipped() && this._background;
+		},
+
+		_hitTest: function _hitTest(point, options, parentViewMatrix) {
+			var hit = this._background._hitTest(
+				point,
+				Base.set(Object.assign({}, options), {
+					all: null,
+					match: null,
+					class: null,
+					tolerance: 0,
+				})
+			);
+
+			if (hit || !this.isClipped()) {
+				return _hitTest.base.call(
+					this,
+					point,
+					options,
+					parentViewMatrix
+				);
+			}
+
+			var activeItems = this.getActiveItems();
+			if (activeItems) {
+				var hit = null;
+				for (var i = activeItems.length - 1; i >= 0; i--) {
+					var item = activeItems[i];
+					if (!hit) {
+						var hit = item._hitTest(point, options);
+					}
+				}
+				return hit;
+			}
+		},
+
 		_hitTestChildren: function _hitTestChildren(
 			point,
 			options,
 			viewMatrix
 		) {
 			var that = this;
+
 			function hitTestChildren() {
 				return _hitTestChildren.base.call(
 					that,
@@ -5804,15 +6085,31 @@ var Artboard = Group.extend(
 				);
 			}
 
+			var hit = this._background._hitTest(
+				point,
+				Base.set(Object.assign({}, options), {
+					all: null,
+					match: null,
+					class: null,
+					tolerance: 0,
+				})
+			);
+
 			if (options.legacy || this._actived || !this._children.length) {
-				if (
-					this._item._hitTest(
-						point,
-						Base.set(Object.assign({}, options), { all: null })
-					)
-				) {
+				if (hit) {
 					var hit = new HitResult("fill", this);
 					var match = options.match;
+
+					if (
+						options.type &&
+						options.type !== Base.hyphenate(this._class)
+					) {
+						hit = null;
+					}
+
+					if (options.class && !(this instanceof options.class)) {
+						hit = null;
+					}
 
 					if (match && !match(hit)) {
 						hit = null;
@@ -5827,6 +6124,7 @@ var Artboard = Group.extend(
 					}
 					return hit;
 				}
+
 				return hitTestChildren();
 			} else {
 				return hitTestChildren();
@@ -5834,7 +6132,7 @@ var Artboard = Group.extend(
 		},
 
 		_remove: function _remove(notifySelf, notifyParent) {
-			this._item.remove();
+			this._background.remove();
 
 			if (this._project) {
 				var index = this._project._artboards.indexOf(this);
@@ -5847,9 +6145,12 @@ var Artboard = Group.extend(
 		},
 
 		draw: function draw(ctx, param, parentStrokeMatrix) {
-			this._drawing = true;
 			draw.base.call(this, ctx, param.extend(), parentStrokeMatrix);
 			this._false = true;
+		},
+
+		_asPathItem: function () {
+			return this._background._asPathItem();
 		},
 
 		_draw: function (ctx, param, viewMatrix, strokeMatrix) {
@@ -5858,12 +6159,20 @@ var Artboard = Group.extend(
 		},
 
 		_drawRect: function (ctx, param) {
-			if (this._item) {
-				this._item.draw(ctx, param);
+			if (this._background) {
+				this._background.draw(ctx, param);
 			}
 		},
 
 		_drawClip: function (ctx, param) {
+			if (this.isClipped()) {
+				var clipItem = this._background.clone();
+				this._insertItem(0, clipItem);
+
+				clipItem.draw(ctx, param.extend({ clip: true }));
+
+				clipItem.remove();
+			}
 		},
 
 		_drawChildren: function (ctx, param) {
@@ -6072,6 +6381,12 @@ var Shape = Item.extend({
 			if (hasStroke)
 				ctx.stroke();
 		}
+	},
+
+	_getHigthlightItem: function() {
+		return new Path.Rectangle({
+			pathData: this.toPath(false).getPathData()
+		});
 	},
 
 	_canComposite: function() {
@@ -6878,7 +7193,7 @@ var ControlItem = Item.extend(
 		},
 
 		getZoom: function(){
-			return this._project._view.getZoom()
+			return this._project._view.getZoom();
 		},
 
 		_createDefaultItem: function () {
@@ -6986,7 +7301,7 @@ var ControlItem = Item.extend(
 			var zoom = this.getZoom();
 			var shadowOffset = null;
 
-			this.setRotation(controls.angle);
+			this.setRotation(controls.inheritedAngle);
 			this.setPosition(controls[this.corner]);
 
 			this._item.transform(
@@ -7257,8 +7572,7 @@ var Controls = Item.extend(
 
 			if (
 				item &&
-				(flags & 8 ||
-					flags & 1048576) &&
+				(flags & 1048584) &&
 				!(item instanceof Layer) &&
 				!item.guide &&
 				!item._control &&
@@ -7293,6 +7607,10 @@ var Controls = Item.extend(
 
 		getAngle: function () {
 			return this._descomposeActiveItemsInfo("angle") || 0;
+		},
+
+		getInheritedAngle: function(){
+			return this._descomposeActiveItemsInfo("inheritedAngle") || 0;
 		},
 
 		getWidth: function () {
@@ -7397,7 +7715,6 @@ var Controls = Item.extend(
 		},
 
 		_getActiveItemsInfo: function () {
-			if (this._activeItemsInfo) return this._activeItemsInfo;
 
 			var items = this._project._activeItems;
 			if (items.length) {
@@ -11110,6 +11427,12 @@ new function() {
 			drawSegments(ctx, this, matrix);
 			ctx.stroke();
 			drawHandles(ctx, this._segments, matrix, paper.settings.handleSize);
+		},
+
+		_getHigthlightItem: function() {
+			return new Path.Rectangle({
+				pathData: this.getPathData()
+			});
 		}
 	};
 },
@@ -15346,8 +15669,8 @@ var Grid = Base.extend(
 			var bounds = this.getBounds(),
 				size = bounds.size,
 				point = bounds.point;
-			(delta = this.getSize().height),
-				(offset = this.isView() ? delta : 0);
+				delta = this.getSize().height,
+				offset = this.isView() ? delta : 0;
 
 			for (
 				var y = point.y - (point.y % offset || 0);
@@ -15688,7 +16011,7 @@ var ToolEvent = Event.extend({
 			if (result) {
 				var item = result.item,
 					parent = item._parent;
-				while (parent && /^(Group|CompoundPath)$/.test(parent._class)) {
+				while (parent && /^(Group|CompoundPath|Artboard)$/.test(parent._class)) {
 					item = parent;
 					parent = parent._parent;
 				}
@@ -15721,6 +16044,8 @@ var Tool = PaperScopeItem.extend(
 			"onMouseUp",
 			"onMouseDrag",
 			"onMouseMove",
+			"onClick",
+			"onDoubleClick",
 			"onActivate",
 			"onDeactivate",
 			"onEditOptions",
@@ -15796,11 +16121,10 @@ var Tool = PaperScopeItem.extend(
 		activeMain: function () {
 			if (this._scope.mainTool) {
 				this._scope.mainTool.activate();
-			}else{
+			} else {
 				this._scope.tool = undefined;
 				this._scope.mainTool = undefined;
 			}
-
 		},
 
 		_handleMouseEvent: function (type, event, point, mouse) {
@@ -15810,8 +16134,11 @@ var Tool = PaperScopeItem.extend(
 				responds = this.responds(type),
 				minDistance = this.minDistance,
 				maxDistance = this.maxDistance,
+				view = paper.view,
 				called = false,
-				tool = this;
+				tool = this,
+				inView = view.getBounds().contains(point);
+
 			function update(minDistance, maxDistance) {
 				var pt = point,
 					toolPoint = move ? tool._point : tool._downPoint || pt;
@@ -15843,7 +16170,40 @@ var Tool = PaperScopeItem.extend(
 					tool._downPoint = pt;
 					tool._downCount++;
 				}
+
 				return true;
+			}
+
+			function click() {
+				if (mouse.down) {
+					var hit =
+						inView &&
+						view._project.hitTest(point, {
+							tolerance: 0,
+							fill: true,
+							stroke: true,
+						});
+
+					tool._hitItem = (hit && hit.item) || null;
+					tool._dblClick =
+						tool._hitItem === tool._clickItem &&
+						Date.now() - tool._clickTime < 300;
+
+					tool._downItem = tool._clickItem = tool._hitItem;
+				} else if (mouse.up) {
+					if (!tool._prevented && tool._hitItem === tool._downItem) {
+						tool._clickTime = Date.now();
+
+						var click = tool._dblClick ? "doubleclick" : "click";
+
+						if (tool.responds(click)) {
+							tool.emit(click, new ToolEvent(tool, click, event));
+						}
+						tool._dblClick = false;
+					}
+					tool._prevented = false;
+					tool._downItem = null;
+				}
 			}
 
 			function emit() {
@@ -15854,12 +16214,18 @@ var Tool = PaperScopeItem.extend(
 				}
 			}
 
+			if (mouse.drag && tool._moveCount > 0) {
+				tool._prevented = true;
+				tool._downItem = tool._hitItem = null;
+			}
 			if (mouse.down) {
 				update();
 				emit();
+				click();
 			} else if (mouse.up) {
 				update(null, maxDistance);
 				emit();
+				click();
 			} else if (responds) {
 				while (update(minDistance, maxDistance)) emit();
 			}

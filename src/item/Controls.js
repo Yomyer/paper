@@ -78,8 +78,7 @@ var Controls = Item.extend(
 
             if (
                 item &&
-                (flags & /*#=*/ ChangeFlag.GEOMETRY ||
-                    flags & /*#=*/ ChangeFlag.ACTIVE) &&
+                (flags & /*#=*/ (ChangeFlag.GEOMETRY | ChangeFlag.ACTIVE)) &&
                 !(item instanceof Layer) &&
                 !item.guide &&
                 !item._control &&
@@ -134,6 +133,14 @@ var Controls = Item.extend(
          */
         getAngle: function () {
             return this._descomposeActiveItemsInfo("angle") || 0;
+        },
+
+        /**
+         * @bean
+         * @type Number
+         */
+        getInheritedAngle: function(){
+            return this._descomposeActiveItemsInfo("inheritedAngle") || 0;
         },
 
         /**
@@ -303,7 +310,7 @@ var Controls = Item.extend(
         },
 
         _getActiveItemsInfo: function () {
-            if (this._activeItemsInfo) return this._activeItemsInfo;
+            // if (this._activeItemsInfo) return this._activeItemsInfo;
 
             var items = this._project._activeItems;
             if (items.length) {

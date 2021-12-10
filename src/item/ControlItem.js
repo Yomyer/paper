@@ -98,7 +98,7 @@ var ControlItem = Item.extend(
         },
 
         getZoom: function(){
-            return this._project._view.getZoom()
+            return this._project._view.getZoom();
         },
 
         _createDefaultItem: function () {
@@ -206,7 +206,7 @@ var ControlItem = Item.extend(
             var zoom = this.getZoom();
             var shadowOffset = null;
 
-            this.setRotation(controls.angle);
+            this.setRotation(controls.inheritedAngle);
             this.setPosition(controls[this.corner]);
 
             this._item.transform(

@@ -193,13 +193,14 @@ var ToolEvent = Event.extend(/** @lends ToolEvent# */{
                     // Find group parent, but exclude layers
                     parent = item._parent;
                     
-                while (parent && /^(Group|CompoundPath)$/.test(parent._class)) {
+                while (parent && /^(Group|CompoundPath|Artboard)$/.test(parent._class)) {
                     item = parent;
                     parent = parent._parent;
                 }
                 this._item = item;
             }
         }
+        
         return this._item;
     },
 

@@ -53,6 +53,8 @@ var Tool = PaperScopeItem.extend(
             "onMouseUp",
             "onMouseDrag",
             "onMouseMove",
+            "onClick",
+            "onDoubleClick",
             "onActivate",
             "onDeactivate",
             "onEditOptions",
@@ -184,12 +186,10 @@ var Tool = PaperScopeItem.extend(
         activeMain: function () {
             if (this._scope.mainTool) {
                 this._scope.mainTool.activate();
-            }else{
+            } else {
                 this._scope.tool = undefined;
                 this._scope.mainTool = undefined;
             }
-
-            
         },
 
         /**
@@ -292,6 +292,58 @@ var Tool = PaperScopeItem.extend(
          */
 
         /**
+         * The function to be called the mouse click within the project view. The
+         * function receives a {@link ToolEvent} object which contains information
+         * about the tool event.
+         *
+         * @name Tool#onClick
+         * @property
+         * @type ?Function
+         *
+         * @example {@paperscript}
+         * // Moving a path to the position of the mouse:
+         *
+         * // Create a circle shaped path with a radius of 10 at {x: 0, y: 0}:
+         * var path = new Path.Circle({
+         *     center: [0, 0],
+         *     radius: 10,
+         *     fillColor: 'black'
+         * });
+         *
+         * tool.onClick = function(event) {
+         *     // Whenever the user moves the mouse, move the path
+         *     // to that position:
+         *     path.position = event.point;
+         * }
+         */
+
+        /**
+         * The function to be called the mouse double click within the project view. The
+         * function receives a {@link ToolEvent} object which contains information
+         * about the tool event.
+         *
+         * @name Tool#onDoubleClick
+         * @property
+         * @type ?Function
+         *
+         * @example {@paperscript}
+         * // Moving a path to the position of the mouse:
+         *
+         * // Create a circle shaped path with a radius of 10 at {x: 0, y: 0}:
+         * var path = new Path.Circle({
+         *     center: [0, 0],
+         *     radius: 10,
+         *     fillColor: 'black'
+         * });
+         *
+         * tool.onDoubleClick = function(event) {
+         *     // Whenever the user moves the mouse, move the path
+         *     // to that position:
+         *     path.position = event.point;
+         * }
+         */
+
+        /**
          * The function to be called when the mouse button is released. The function
          * receives a {@link ToolEvent} object which contains information about the
          * tool event.
@@ -385,8 +437,11 @@ var Tool = PaperScopeItem.extend(
                 responds = this.responds(type),
                 minDistance = this.minDistance,
                 maxDistance = this.maxDistance,
+                view = paper.view,
                 called = false,
-                tool = this;
+                tool = this,
+                inView = view.getBounds().contains(point);
+
             // Updates the internal tool state, taking into account minDistance and
             // maxDistance and interpolating "fake" events along the moved distance
             // to respect their settings, if necessary.
@@ -431,7 +486,42 @@ var Tool = PaperScopeItem.extend(
                     tool._downPoint = pt;
                     tool._downCount++;
                 }
+
                 return true;
+            }
+
+            function click() {
+                if (mouse.down) {
+                    var hit =
+                        inView &&
+                        view._project.hitTest(point, {
+                            tolerance: 0,
+                            fill: true,
+                            stroke: true,
+                        });
+
+                    tool._hitItem = (hit && hit.item) || null;
+                    tool._dblClick =
+                        tool._hitItem === tool._clickItem &&
+                        Date.now() - tool._clickTime < 300;
+
+                    tool._downItem = tool._clickItem = tool._hitItem;
+                } else if (mouse.up) {
+                    // Emulate click / doubleclick, but only on the hit-item,
+                    // not the view.
+                    if (!tool._prevented && tool._hitItem === tool._downItem) {
+                        tool._clickTime = Date.now();
+
+                        var click = tool._dblClick ? "doubleclick" : "click";
+
+                        if (tool.responds(click)) {
+                            tool.emit(click, new ToolEvent(tool, click, event));
+                        }
+                        tool._dblClick = false;
+                    }
+                    tool._prevented = false;
+                    tool._downItem = null;
+                }
             }
 
             function emit() {
@@ -442,12 +532,18 @@ var Tool = PaperScopeItem.extend(
                 }
             }
 
+            if (mouse.drag && tool._moveCount > 0) {
+                tool._prevented = true;
+                tool._downItem = tool._hitItem = null;
+            }
             if (mouse.down) {
                 update();
                 emit();
+                click();
             } else if (mouse.up) {
                 update(null, maxDistance);
                 emit();
+                click();
             } else if (responds) {
                 while (update(minDistance, maxDistance)) emit();
             }

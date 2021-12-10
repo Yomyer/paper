@@ -62,6 +62,7 @@ var Item = Base.extend(Emitter, /** @lends Item# */{
     _angle: 0,
     _blocked: false,
     _actived: false,
+    _highlighted: false,
     _clipMask: false,
     _selection: 0,
     _selectionCache: null,
@@ -75,10 +76,7 @@ var Item = Base.extend(Emitter, /** @lends Item# */{
     _serializeStyle: true,
     _flipped: {x:false, y: false},
     _constraintsPivot: null,
-    _constraints: {
-        horizontal: 'scale', 
-        vertical: 'both'
-    },
+    _constraints: {},
     // Provide information about fields to be serialized, with their defaults
     // that can be omitted.
     _serializeFields: {
@@ -96,7 +94,8 @@ var Item = Base.extend(Emitter, /** @lends Item# */{
         data: {},
         uid: null,
         angle: 0,
-        actived: false
+        actived: false,
+        constraints: {}
     },
     // Prioritize `applyMatrix` over `matrix`:
     _prioritize: ['applyMatrix']
@@ -235,7 +234,7 @@ new function() { // Injection scope for various item event handlers
         var symbol = this._symbol,
             cacheParent = this._parent || symbol,
             project = this._project;
-        if (flags & /*#=*/ChangeFlag.GEOMETRY) {
+        if (flags & /*#=*/ (ChangeFlag.GEOMETRY | ChangeFlag.ACTIVE)) {
             // Clear cached bounds, position and decomposed matrix whenever
             // geometry changes.
             this._bounds = this._position = this._decomposed = this._activeInfo = undefined;
@@ -244,7 +243,7 @@ new function() { // Injection scope for various item event handlers
             this._globalMatrix = undefined;
         }
         if (cacheParent
-                && (flags & /*#=*/(ChangeFlag.GEOMETRY | ChangeFlag.STROKE))) {
+                && (flags & /*#=*/(ChangeFlag.GEOMETRY | ChangeFlag.STROKE | ChangeFlag.ACTIVE))) {
             // Clear cached bounds of all items that this item contributes to.
             // We call this on the parent, since the information is cached on
             // the parent, see getBounds().
@@ -306,7 +305,7 @@ new function() { // Injection scope for various item event handlers
      * @name Item#className
      * @type String
      * @values 'Group', 'Layer', 'Path', 'CompoundPath', 'Shape', 'Raster',
-     *     'SymbolItem', 'PointText'
+     *     'SymbolItem', 'PointText', 'Artboard', 'ControlItem', 'Controls', 'ControlInfo'
      */
 
     /**
@@ -462,13 +461,37 @@ new function() { // Injection scope for various item event handlers
         this._angle = angle;
     },
 
-    getInheritAngle: function(){
+    /**
+     * The angle of item
+     *
+     * @name Item#inheritedAngle
+     * @type Number
+     * 
+    */
+    getInheritedAngle: function(){
         var angle = this._angle;
         if(this._parent){
-            angle += this._parent.getInheritAngle()
+            angle += this._parent.getInheritedAngle();
         }
 
         return angle;
+    },
+
+    /**
+     * The angle of item
+     *
+     * @name Item#artboard
+     * @type Artboard
+     * 
+    */
+    getArtboard: function(){
+        var artboard = null;
+
+        if(this._parent instanceof Item){
+            artboard = this._parent instanceof Artboard ? this.parent : this.parent.getArtboard();
+        }
+
+        return artboard;
     },
 
     /**
@@ -880,12 +903,12 @@ new function() { // Injection scope for various item event handlers
      * @name Item#constraints
      * @type Object {horitonal: 'start'|'end'|'both'|'center'|'scale', vertical: 'start'|'end'|'both'|'center'|'scale'}
      */
-    getConstraints(){
-        return this._constraints
+    getConstraints: function(){
+        return this._constraints;
     },
     
-    setConstraints(constraints){
-        return this._constraints = constraints
+    setConstraints: function(constraints){
+        return this._constraints = constraints;
     },
 
     /**
@@ -894,12 +917,12 @@ new function() { // Injection scope for various item event handlers
      * @name Item#constraintsPivot
      * @type Point
      */
-    getConstraintsPivot(){
-        return this._constraintsPivot
+    getConstraintsPivot: function(){
+        return this._constraintsPivot;
     },
     
-    setConstraintsPivot(/* point */){
-        return this._constraintsPivot = Point.read(arguments)
+    setConstraintsPivot: function(/* point */){
+        return this._constraintsPivot = Point.read(arguments);
     },
 
 
@@ -1043,7 +1066,7 @@ new function() { // Injection scope for various item event handlers
         return [
             options.stroke ? 1 : 0,
             options.handle ? 1 : 0,
-            options.drawing ? 1 : 0,
+            options.hit ? 1 : 0,
             internal ? 1 : 0
         ].join('');
     },
@@ -1156,7 +1179,7 @@ new function() { // Injection scope for various item event handlers
             var cache = item._boundsCache;
             if (cache) {
                 // Erase cache before looping, to prevent circular recursion.
-                item._bounds = item._position = item._boundsCache = undefined;
+                item._bounds = item._position = item._boundsCache = item._activeInfo = undefined;
                 for (var i = 0, list = cache.list, l = list.length; i < l; i++){
                     var other = list[i];
                     if (other !== item) {
@@ -1792,6 +1815,7 @@ new function() { // Injection scope for various item event handlers
         if(options && options.keep){
             copy._uid = this._uid;
         }
+        copy.angle = this.angle;
 
         return copy;
     },
@@ -2069,8 +2093,59 @@ new function() { // Injection scope for various item event handlers
             for (var i = 0, l = children.length; i < l; i++)
                 children[i].setActived(false);
         }
+        
+        this.setHighlighted(false);
 
         this._changed(/*#=*/Change.ACTIVE);
+    },
+
+    /**
+     * The if item is actived.
+     *
+     * @name Item#highlighted
+     * @type Boolean
+     * 
+    */
+    getHighlighted: function(){
+        return this._highlighted;
+    },
+
+    setHighlighted: function(highlighted){
+        if(this._highlighted == highlighted)
+            return;
+            
+        this._highlighted = highlighted;
+
+        if(this._project._highlightedItem) 
+            this._project._highlightedItem._highlighted = false;
+
+        this._project._highlightedItem = highlighted ? this : null;
+
+        this._changed(/*#=*/Change.ATTRIBUTE);
+    },
+
+    /**
+     * The if item children is actived.
+     *
+     * @name Item#activeItems
+     * @type Boolean
+     * 
+    */
+    getActiveItems: function(){
+        var children = this._children,
+            activedItems = [];
+
+        if(children){
+            for (var i = 0, l = children.length; i < l; i++) {
+                var item = children[i];
+                if (item.actived){
+                    activedItems.push(item);
+                }
+                activedItems = activedItems.concat(item.getActiveItems());
+            }
+        }
+
+        return activedItems;
     },
 
     /**
@@ -2082,7 +2157,7 @@ new function() { // Injection scope for various item event handlers
     */
     getCorners: function(unrotated) {
         
-        var angle = this.getInheritAngle();
+        var angle = this.getInheritedAngle();
         var bounds = this.bounds;
         var center =  this.bounds.center;
 
@@ -2120,7 +2195,7 @@ new function() { // Injection scope for various item event handlers
      * The info of active object
      *
      * @name Item#activeInfo
-     * @type Object {angle: number, width: number, height: number, top: number, left: number, rigth: number, bottom: number, center: Point, topCenter: Point, rightCenter: Point, bottomCenter: Point, leftCenter: Point, topLeft: Point, topRight: Point, bottomRight: Point, bottomLeft: Point}
+     * @type Object {angle: number, inheritedAngle: number, width: number, height: number, top: number, left: number, rigth: number, bottom: number, center: Point, topCenter: Point, rightCenter: Point, bottomCenter: Point, leftCenter: Point, topLeft: Point, topRight: Point, bottomRight: Point, bottomLeft: Point}
      * 
     */
     getActiveInfo: function() {
@@ -2132,6 +2207,7 @@ new function() { // Injection scope for various item event handlers
 
         return this._activeInfo = Base.set(corners, {
             angle: this.angle,
+            inheritedAngle: this.inheritedAngle,
             width: corners.topLeft.subtract(corners.topRight).length,
             height: corners.topLeft.subtract(corners.bottomLeft).length,
             center: corners.topLeft.add(corners.bottomRight).divide(2),
@@ -2196,6 +2272,7 @@ new function() { // Injection scope for hit-test functions shared with project
             // Loop backwards, so items that get drawn last are tested first.
             for (var i = children.length - 1; i >= 0; i--) {
                 var child = children[i];
+                
                 var res = child !== _exclude && child._hitTest(point, options,
                         viewMatrix);
                 // Only return the found result if we're not asked to collect
@@ -2386,7 +2463,7 @@ new function() { // Injection scope for hit-test functions shared with project
             }
             res = filter(res);
         }
-
+        
         if (!res) {
             res = this._hitTestChildren(point, options, viewMatrix)
                 // NOTE: We don't call match on _hitTestChildren() because
@@ -2604,10 +2681,13 @@ new function() { // Injection scope for hit-test functions shared with project
                 rect = param.rect;
             matrix = rect && (matrix || new Matrix());
 
+            param.children = [];
+
             for (var i = 0, l = children && children.length; i < l; i++) {
                 var child = children[i],
                     childMatrix = matrix && matrix.appended(child._matrix),
-                    add = true;
+                    add = true,
+                    group = child._class == 'Group';
                 if (rect) {
                     var bounds = child.getBounds(childMatrix);
 
@@ -2624,6 +2704,7 @@ new function() { // Injection scope for hit-test functions shared with project
                                 || param.path.intersects(child, childMatrix))))
                         add = false;
                 }
+
                 if (add && child.matches(options)) {
                     items.push(child);
                     if (firstOnly)
@@ -2631,7 +2712,8 @@ new function() { // Injection scope for hit-test functions shared with project
                 }
                 if (param.recursive !== false || child._getItemsInChildrens) {
                     _getItems(child, options, childMatrix, param, firstOnly);
-                }
+                }                
+
                 if (firstOnly && items.length > 0)
                     break;
             }
@@ -2781,6 +2863,9 @@ new function() { // Injection scope for hit-test functions shared with project
      * @return {Item} the inserted item, or `null` if inserting was not possible
      */
     insertChild: function(index, item) {
+        if(item.inheritedAngle){
+            item._angle = item.inheritedAngle - this.inheritedAngle ;
+        }
         var res = item ? this.insertChildren(index, [item]) : null;
         return res && res[0];
     },
@@ -3058,10 +3143,14 @@ new function() { // Injection scope for hit-test functions shared with project
         if (this._style)
             this._style._dispose();
         
+
         if (owner) {
             // Handle named children separately from index:
             if (this._name)
                 this._removeNamed();
+
+            this.setActived(false);
+            this.setHighlighted(false);
             // Handle index separately from owner: There are situations where
             // the item is already removed from its list through Base.splice()
             // and index set to undefined, but the owner is still set,
@@ -3654,7 +3743,7 @@ new function() { // Injection scope for hit-test functions shared with project
             center = Point.read(args, 0, { readNull: true });
 
         if(rotate) this._angle += value;
-        if(scale) this._constraintsPivot = center || this.getPosition(true)
+        if(scale) this._constraintsPivot = center || this.getPosition(true);
 
         this._transformType = key;
 
@@ -3836,7 +3925,7 @@ new function() { // Injection scope for hit-test functions shared with project
      * @returns {Boolean}
      */
     getFlipped: function(){
-        return this._flipped
+        return this._flipped;
     },
 
     /**
@@ -4898,6 +4987,41 @@ new function() { // Injection scope for hit-test functions shared with project
                 }
             }
         }
+    },
+
+    _drawHighlight: function(ctx, matrix, pixelRatio) {
+        if(this.getActived()){
+            return;
+        }
+
+        matrix.applyToContext(ctx);
+
+        var param = new Base({
+            offset: new Point(0, 0),
+            pixelRatio: pixelRatio,
+            viewMatrix: matrix.isIdentity() ? null : matrix,
+            matrices: [new Matrix()],
+            updateMatrix: true,
+        });
+        
+        item = this._getHigthlightItem();
+        item.set({
+            insert: false,
+            strokeColor: "rgba(0, 142, 252, 1)",
+            strokeWidth: 2 / this._project._view.getZoom(),
+        });
+
+        item.draw(ctx, param);
+        item.remove();
+    },
+
+    _getHigthlightItem: function() {
+        var info = this.getActiveInfo();
+        return new Path.Rectangle({
+            position: info.center,
+            size: info,
+            rotation: info.inheritedAngle
+        });
     },
 
     _canComposite: function() {

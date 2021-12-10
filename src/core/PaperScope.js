@@ -380,11 +380,19 @@ var PaperScope = Base.extend(/** @lends PaperScope# */{
 
     /**
      * 
-     * @param {String} eventName 
+     * @param {String|Array<string>} eventName 
      * @param {Function} handler 
      * @return {Tool}
      */
      off: function(eventName, handler){
+        if (eventName instanceof Array) {
+            for (var key in eventName) {
+                this.off(eventName[key], handler);
+            }
+
+            return;
+        }
+
         if (!this._eventListeners) {
             return this;
         }
@@ -405,12 +413,24 @@ var PaperScope = Base.extend(/** @lends PaperScope# */{
 
     /**
      * 
-     * @param {String} eventName 
-     * @param {Object} options 
+     * @param {String|Array<string>} eventName 
+     * @param {Object} [options] 
      * @return {Tool}
      */
     fire: function(eventName, options){
         if (!this._eventListeners) return this;
+
+        if (eventName instanceof Array) {
+            for (var key in eventName) {
+                this.fire(eventName[key], options);
+            }
+
+            return;
+        }
+
+        if(!options){
+            options = {};
+        }
 
         if (options && !options.items) {
             options.items = this.project.getActiveItems();

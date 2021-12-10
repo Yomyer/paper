@@ -9,7 +9,7 @@
  *
  * All rights reserved.
  *
- * Date: Thu Nov 18 18:22:45 2021 +0100
+ * Date: Fri Nov 19 19:34:20 2021 +0100
  *
  * This is an auto-generated type definition.
  */
@@ -498,6 +498,9 @@ declare namespace paper {
 
         
         readonly angle: number
+
+        
+        readonly inheritedAngle: number
 
         
         readonly width: number
@@ -1512,7 +1515,7 @@ declare namespace paper {
         /** 
          * The class name of the item as a string.
          */
-        className: 'Group' | 'Layer' | 'Path' | 'CompoundPath' | 'Shape' | 'Raster' |    'SymbolItem' | 'PointText'
+        className: 'Group' | 'Layer' | 'Path' | 'CompoundPath' | 'Shape' | 'Raster' |    'SymbolItem' | 'PointText' | 'Artboard' | 'ControlItem' | 'Controls' | 'ControlInfo'
 
         /** 
          * The name of the item. If the item has a name, it can be accessed by name
@@ -1534,6 +1537,16 @@ declare namespace paper {
          * The angle of item
          */
         angle: number
+
+        /** 
+         * The angle of item
+         */
+        inheritedAngle: number
+
+        /** 
+         * The angle of item
+         */
+        artboard: Artboard
 
         /** 
          * @return Boolean
@@ -1764,6 +1777,16 @@ declare namespace paper {
         actived: boolean
 
         /** 
+         * The if item is actived.
+         */
+        highlighted: boolean
+
+        /** 
+         * The if item children is actived.
+         */
+        activeItems: boolean
+
+        /** 
          * The corners
          */
         corners: Array<number>
@@ -1776,7 +1799,7 @@ declare namespace paper {
         /** 
          * The info of active object
          */
-        activeInfo: {angle: number, width: number, height: number, top: number, left: number, rigth: number, bottom: number, center: Point, topCenter: Point, rightCenter: Point, bottomCenter: Point, leftCenter: Point, topLeft: Point, topRight: Point, bottomRight: Point, bottomLeft: Point}
+        activeInfo: {angle: number, inheritedAngle: number, width: number, height: number, top: number, left: number, rigth: number, bottom: number, center: Point, topCenter: Point, rightCenter: Point, bottomCenter: Point, leftCenter: Point, topLeft: Point, topRight: Point, bottomRight: Point, bottomLeft: Point}
 
         /** 
          * The color of the stroke.
@@ -3622,10 +3645,10 @@ declare namespace paper {
         on(eventName: string | Array<string>, handler: Function): Tool
 
         
-        off(eventName: string, handler: Function): Tool
+        off(eventName: string | Array<string>, handler: Function): Tool
 
         
-        fire(eventName: string, options: object): Tool
+        fire(eventName: string | Array<string>, options?: object): Tool
 
         
         createTool(name: string, main?: boolean): Tool
@@ -5298,9 +5321,14 @@ declare namespace paper {
         insertMode: boolean
 
         /** 
-         * The inserMode
+         * The activeItems
          */
         activeItems: Item[]
+
+        /** 
+         * The Highlighted
+         */
+        highlightedItem: Item
 
         /** 
          * The symbol definitions shared by all symbol items contained place ind
@@ -5352,6 +5380,13 @@ declare namespace paper {
          * removes its view, if one was defined.
          */
         remove(): void
+
+        /** 
+         * Clear the highlighted item
+         * 
+         * @param item - the item to higlight
+         */
+        clearHighlightedItem(item?: Item): void
 
         /** 
          * Selects all items in the project.
@@ -7069,6 +7104,20 @@ declare namespace paper {
          * about the tool event.
          */
         onMouseMove: Function | null
+
+        /** 
+         * The function to be called the mouse click within the project view. The
+         * function receives a {@link ToolEvent} object which contains information
+         * about the tool event.
+         */
+        onClick: Function | null
+
+        /** 
+         * The function to be called the mouse double click within the project view. The
+         * function receives a {@link ToolEvent} object which contains information
+         * about the tool event.
+         */
+        onDoubleClick: Function | null
 
         /** 
          * The function to be called when the mouse button is released. The function

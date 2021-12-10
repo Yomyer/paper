@@ -2361,6 +2361,12 @@ new function() { // Scope for drawing
             // Now stroke it and draw its handles:
             ctx.stroke();
             drawHandles(ctx, this._segments, matrix, paper.settings.handleSize);
+        },
+
+        _getHigthlightItem: function() {
+            return new Path.Rectangle({
+                pathData: this.getPathData()
+            });
         }
     };
 },

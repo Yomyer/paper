@@ -171,8 +171,8 @@ var Grid = Base.extend(
             var bounds = this.getBounds(),
                 size = bounds.size,
                 point = bounds.point;
-            (delta = this.getSize().height),
-                (offset = this.isView() ? delta : 0);
+                delta = this.getSize().height,
+                offset = this.isView() ? delta : 0;
 
             for (
                 var y = point.y - (point.y % offset || 0);

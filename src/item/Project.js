@@ -38,6 +38,7 @@ var Project = PaperScopeItem.extend(
         _compactSerialize: true, // Never include the class name for Project
         _insertMode: false,
         _activeItems: [],
+        _highlightedItem: null,
         _mainTool: null,
         _artboards: [],
         _controls: null,
@@ -321,7 +322,7 @@ var Project = PaperScopeItem.extend(
         },
 
         /**
-         * The inserMode
+         * The activeItems
          *
          * @bean
          * @type Item[]
@@ -331,8 +332,37 @@ var Project = PaperScopeItem.extend(
         },
 
         setActiveItems: function (items) {
-            this._activeItems = items;
-            this._changed(/*#=*/ ChangeFlag.ACTIVE);
+            this.deactivateAll();
+
+            if (items && items.length) {
+                for (var i = 0, l = items.length; i < l; i++)
+                    items[i].setActived(true);
+            }
+        },
+
+        /**
+         * The Highlighted
+         *
+         * @bean
+         * @type Item
+         */
+        getHighlightedItem: function () {
+            return this._highlightedItem;
+        },
+
+        setHighlightedItem: function (item) {
+            this.clearHighlightedItem(item);
+        },
+
+        /**
+         * Clear the highlighted item
+         * @param {Item} [item] the item to higlight
+         */
+        clearHighlightedItem: function (item) {
+            if (this._highlightedItem)
+                this._highlightedItem._highlighted = false;
+
+            this._highlightedItem = item && null;
         },
 
         /**
@@ -1069,6 +1099,12 @@ var Project = PaperScopeItem.extend(
                 for (var id in items) {
                     items[id]._drawSelection(ctx, matrix, size, items, version);
                 }
+                ctx.restore();
+            }
+
+            if (this._highlightedItem) {
+                ctx.save();
+                this._highlightedItem._drawHighlight(ctx, matrix, pixelRatio);
                 ctx.restore();
             }
 

@@ -28,10 +28,10 @@ var Artboard = Group.extend(
         _applyChildrenStyle: false,
         _selectBounds: true,
         _selectChildren: false,
-        _drawing: false,
+        _getBackgroundsInChildrens: true,
         _getItemsInChildrens: true,
         _serializeStyle: true,
-        _item: null,
+        _background: null,
         _transformCache: {},
         _serializeFields: {
             size: null,
@@ -46,7 +46,7 @@ var Artboard = Group.extend(
             this._children = [];
             this._namedChildren = {};
 
-            this.setItem(args[0]);
+            this.setBackground(args[0]);
 
             if (!this._initialize(args[0])) {
                 this.addChildren(Array.isArray(args) ? args : arguments);
@@ -63,11 +63,11 @@ var Artboard = Group.extend(
             return this._parent || (this._index != null && this._project);
         },
 
-        getItem: function () {
-            return this._item;
+        getBackground: function () {
+            return this._background;
         },
 
-        setItem: function (args) {
+        setBackground: function (args) {
             var args = Base.set(Object.assign({}, args), {
                 insert: false,
                 children: undefined,
@@ -75,7 +75,7 @@ var Artboard = Group.extend(
                 actived: false,
             });
 
-            this._item = new Shape.Rectangle(args);
+            this._background = new Shape.Rectangle(args);
         },
 
         /**
@@ -104,6 +104,7 @@ var Artboard = Group.extend(
 
         setClipped: function (clipped) {
             this._clipped = clipped;
+            this._getItemsInChildrens = !clipped;
         },
 
         /**
@@ -132,30 +133,31 @@ var Artboard = Group.extend(
         },
 
         copyContent: function copyContent(source) {
-            this._item = source._item.clone();
+            this._background = source._background.clone();
+            this._clipped = source._clipped;
             copyContent.base.call(this, source);
         },
 
         getStrokeBounds: function (matrix) {
-            return this.getBounds(matrix, {
-                drawing: this._drawing,
-            });
+            return this.getBounds(matrix);
         },
 
         _getBounds: function (matrix, options) {
-            var rect = this._item.bounds,
+            var rect = this._background.bounds,
                 style = this._style,
                 strokeWidth =
                     options.stroke &&
                     style.hasStroke() &&
                     style.getStrokeWidth();
 
-            if (options.drawing && !this._clipped) {
+            /*
+            if (options.hit) {
                 var children = this._children;
                 for (var i = 0, l = children.length; i < l; i++) {
                     rect = rect.unite(children[i].bounds);
                 }
             }
+            */
 
             if (matrix) rect = matrix._transformBounds(rect);
             return strokeWidth
@@ -177,7 +179,11 @@ var Artboard = Group.extend(
                 return;
             }
 
-            this._item.transform(matrix, _applyRecursively, _setApplyMatrix);
+            this._background.transform(
+                matrix,
+                _applyRecursively,
+                _setApplyMatrix
+            );
 
             tranform.base.call(
                 this,
@@ -190,88 +196,179 @@ var Artboard = Group.extend(
         },
 
         _transformContent: function (matrix, applyRecursively, setApplyMatrix) {
-            var children = this._children;
+            return this._applyConstraints(
+                this._children,
+                matrix,
+                applyRecursively,
+                setApplyMatrix
+            );
+        },
+
+        _applyConstraints: function(children, matrix, applyRecursively, setApplyMatrix) {
             if (children) {
                 var scaling = matrix.scaling,
-                    rotation = matrix.rotation,
                     translation = matrix.translation,
                     isScaling = this._transformType == "scale",
                     flipped = new Point(matrix.a, matrix.d).sign(),
-                    info = this._item.getActiveInfo(),
-                    diff = new Size(
-                        0,
-                        info.height / matrix.d - info.height * flipped.y
-                    );
+                    info = this._background.getActiveInfo(),
+                    diff = new Size(info)
+                        .divide(matrix.a, matrix.d)
+                        .subtract(new Size(info).multiply(flipped));
 
                 for (var i = 0, l = children.length; i < l; i++) {
                     var item = children[i],
                         mx = new Matrix(),
                         horizontal = item._constraints.horizontal,
                         vertical = item._constraints.vertical,
-                        size = new Size(item.getActiveInfo()),
-                        itemScale = size.add(diff).divide(size);
-
+                        size = new Size(item.bounds),
+                        itemScale = new Point(info)
+                            .subtract(
+                                new Point(info)
+                                    .divide(matrix.a, matrix.d)
+                                    .multiply(flipped)
+                                    .subtract(size)
+                            )
+                            .divide(size);
 
                     if (isScaling) {
                         var top =
-                            info.center.y < this._constraintsPivot.y ==
-                            (flipped.y != -1);
-
-                        var bottom =
                             info.center.y > this._constraintsPivot.y ==
                             (flipped.y != -1);
+                        left =
+                            info.center.x > this._constraintsPivot.x ==
+                            (flipped.x != -1);
 
-                        if (horizontal == "scale") {
-                            var flipped = new Point(matrix.a, matrix.d).sign();
-                            mx.translate(translation.x, 0).scale(scaling.x, 1);
-                            // .rotate(flipped.x === -1 && -180);
+                        switch (horizontal) {
+                            case "scale":
+                                mx.translate(translation.x, 0).scale(
+                                    scaling.x,
+                                    1
+                                );
+                                break;
+                            case "end":
+                                mx.translate(left ? -diff.width : 0, 0).scale(
+                                    flipped.x,
+                                    1,
+                                    this._constraintsPivot
+                                );
+                                break;
+                            case "center":
+                                mx.translate(
+                                    left ? -diff.width / 2 : diff.width / 2,
+                                    0
+                                ).scale(flipped.x, 1, this._constraintsPivot);
+                                break;
+                            case "both":
+                                mx.scale(
+                                    flipped.x,
+                                    1,
+                                    this._constraintsPivot
+                                ).scale(
+                                    itemScale.x,
+                                    1,
+                                    left
+                                        ? item.bounds.leftCenter
+                                        : item.bounds.rightCenter
+                                );
+                                break;
+                            default:
+                                mx.translate(left ? 0 : diff.width, 0).scale(
+                                    flipped.x,
+                                    1,
+                                    this._constraintsPivot
+                                );
+                                break;
                         }
 
-                        if (vertical == "scale") {
-                            mx.translate(0, translation.y).scale(1, scaling.y);
-                        }
-
-                        if (vertical == "start") {
-                            mx.translate(0, top ? diff.height : 0).scale(
-                                1,
-                                flipped.y,
-                                this._constraintsPivot
-                            );
-                        }
-
-                        if (vertical == "end") {
-                            mx.translate(0, bottom ? -diff.height : 0).scale(
-                                1,
-                                flipped.y,
-                                this._constraintsPivot
-                            );
-                        }
-
-                        if (vertical == "center") {
-                            mx.translate(
-                                0,
-                                top ? diff.height / 2 : -diff.height / 2
-                            ).scale(1, flipped.y, this._constraintsPivot);
-                        }
-                        if (vertical == "both") {
-                            console.log(itemScale);
-                            mx.scale(
-                                itemScale,
-                                item.getActiveInfo().topCenter
-                            ).scale(
-                                scaling,
-                                item.getActiveInfo().topCenter
-                            )
+                        switch (vertical) {
+                            case "scale":
+                                mx.translate(0, translation.y).scale(
+                                    1,
+                                    scaling.y
+                                );
+                                break;
+                            case "end":
+                                mx.translate(0, top ? -diff.height : 0).scale(
+                                    1,
+                                    flipped.y,
+                                    this._constraintsPivot
+                                );
+                                break;
+                            case "center":
+                                mx.translate(
+                                    0,
+                                    top ? -diff.height / 2 : diff.height / 2
+                                ).scale(1, flipped.y, this._constraintsPivot);
+                                break;
+                            case "both":
+                                mx.scale(
+                                    1,
+                                    flipped.y,
+                                    this._constraintsPivot
+                                ).scale(
+                                    1,
+                                    itemScale.y,
+                                    top
+                                        ? item.bounds.topCenter
+                                        : item.bounds.bottomCenter
+                                );
+                                break;
+                            default:
+                                mx.translate(0, top ? 0 : diff.height).scale(
+                                    1,
+                                    flipped.y,
+                                    this._constraintsPivot
+                                );
+                                break;
                         }
                     } else {
                         mx = matrix;
                     }
 
-                    // console.log(mx.scaling, mx.translation, mx.rotation)
-
                     item.transform(mx, applyRecursively, setApplyMatrix);
                 }
                 return true;
+            }
+        },
+
+        isClipped: function () {
+            return this.getClipped();
+        },
+
+        _getClipItem: function () {
+            return this.isClipped() && this._background;
+        },
+
+        _hitTest: function _hitTest(point, options, parentViewMatrix) {
+            var hit = this._background._hitTest(
+                point,
+                Base.set(Object.assign({}, options), {
+                    all: null,
+                    match: null,
+                    class: null,
+                    tolerance: 0,
+                })
+            );
+
+            if (hit || !this.isClipped()) {
+                return _hitTest.base.call(
+                    this,
+                    point,
+                    options,
+                    parentViewMatrix
+                );
+            }
+
+            var activeItems = this.getActiveItems();
+            if (activeItems) {
+                var hit = null;
+                for (var i = activeItems.length - 1; i >= 0; i--) {
+                    var item = activeItems[i];
+                    if (!hit) {
+                        var hit = item._hitTest(point, options);
+                    }
+                }
+                return hit;
             }
         },
 
@@ -281,6 +378,7 @@ var Artboard = Group.extend(
             viewMatrix
         ) {
             var that = this;
+
             function hitTestChildren() {
                 return _hitTestChildren.base.call(
                     that,
@@ -290,15 +388,31 @@ var Artboard = Group.extend(
                 );
             }
 
+            var hit = this._background._hitTest(
+                point,
+                Base.set(Object.assign({}, options), {
+                    all: null,
+                    match: null,
+                    class: null,
+                    tolerance: 0,
+                })
+            );
+
             if (options.legacy || this._actived || !this._children.length) {
-                if (
-                    this._item._hitTest(
-                        point,
-                        Base.set(Object.assign({}, options), { all: null })
-                    )
-                ) {
+                if (hit) {
                     var hit = new HitResult("fill", this);
                     var match = options.match;
+
+                    if (
+                        options.type &&
+                        options.type !== Base.hyphenate(this._class)
+                    ) {
+                        hit = null;
+                    }
+
+                    if (options.class && !(this instanceof options.class)) {
+                        hit = null;
+                    }
 
                     if (match && !match(hit)) {
                         hit = null;
@@ -313,6 +427,7 @@ var Artboard = Group.extend(
                     }
                     return hit;
                 }
+
                 return hitTestChildren();
             } else {
                 return hitTestChildren();
@@ -320,7 +435,7 @@ var Artboard = Group.extend(
         },
 
         _remove: function _remove(notifySelf, notifyParent) {
-            this._item.remove();
+            this._background.remove();
 
             if (this._project) {
                 var index = this._project._artboards.indexOf(this);
@@ -333,9 +448,12 @@ var Artboard = Group.extend(
         },
 
         draw: function draw(ctx, param, parentStrokeMatrix) {
-            this._drawing = true;
             draw.base.call(this, ctx, param.extend(), parentStrokeMatrix);
             this._false = true;
+        },
+
+        _asPathItem: function () {
+            return this._background._asPathItem();
         },
 
         _draw: function (ctx, param, viewMatrix, strokeMatrix) {
@@ -344,28 +462,20 @@ var Artboard = Group.extend(
         },
 
         _drawRect: function (ctx, param) {
-            if (this._item) {
-                this._item.draw(ctx, param);
+            if (this._background) {
+                this._background.draw(ctx, param);
             }
         },
 
         _drawClip: function (ctx, param) {
-            /*if (this.getClipped()) {
-                var size = this._size,
-                    point = this._point;
-
-                var clipItem = new Shape.Rectangle(
-                    point.x,
-                    point.y,
-                    size.width,
-                    size.height
-                );
+            if (this.isClipped()) {
+                var clipItem = this._background.clone();
                 this._insertItem(0, clipItem);
 
                 clipItem.draw(ctx, param.extend({ clip: true }));
 
                 clipItem.remove();
-            }*/
+            }
         },
 
         _drawChildren: function (ctx, param) {
