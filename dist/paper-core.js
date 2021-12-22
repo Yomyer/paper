@@ -1,5 +1,5 @@
 /*!
- * Paper.js v0.12.15-newarboards - The Swiss Army Knife of Vector Graphics Scripting.
+ * Paper.js v0.12.15-main - The Swiss Army Knife of Vector Graphics Scripting.
  * http://paperjs.org/
  *
  * Copyright (c) 2011 - 2020, Jürg Lehni & Jonathan Puckey
@@ -9,7 +9,7 @@
  *
  * All rights reserved.
  *
- * Date: Fri Nov 19 19:34:20 2021 +0100
+ * Date: Fri Dec 10 18:30:02 2021 +0100
  *
  ***
  *
@@ -822,7 +822,7 @@ var PaperScope = Base.extend({
 		}
 	},
 
-	version: "0.12.15-newarboards",
+	version: "0.12.15-main",
 
 	getView: function() {
 		var project = this.project;
@@ -4477,7 +4477,6 @@ new function() {
 			for (var i = 0, l = children.length; i < l; i++)
 				children[i].setActived(false);
 		}
-		this.setHighlighted(false);
 
 		this._changed(1048577);
 	},

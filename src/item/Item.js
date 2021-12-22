@@ -2093,8 +2093,6 @@ new function() { // Injection scope for various item event handlers
             for (var i = 0, l = children.length; i < l; i++)
                 children[i].setActived(false);
         }
-        
-        this.setHighlighted(false);
 
         this._changed(/*#=*/Change.ACTIVE);
     },
